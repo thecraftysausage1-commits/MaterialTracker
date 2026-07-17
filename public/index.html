@@ -1,0 +1,2161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manufacturing Material Tracker</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --surface: #ffffff;
+      --surface-2: #eef2ff;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #dbe2ea;
+      --accent: #2563eb;
+      --accent-2: #0f172a;
+      --success: #16a34a;
+      --warning: #f59e0b;
+      --danger: #dc2626;
+      --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+    }
+
+    body.dark {
+      --bg: #07111f;
+      --surface: #0f172a;
+      --surface-2: #111c31;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --border: #243449;
+      --accent-2: #e2e8f0;
+      --shadow: 0 10px 30px rgba(2, 8, 23, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      transition: all 0.25s ease;
+    }
+    a { color: inherit; text-decoration: none; }
+    button, input, select, textarea { font: inherit; }
+
+    .app-shell { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 280px; background: linear-gradient(180deg, var(--surface-2), var(--surface));
+      border-right: 1px solid var(--border); padding: 24px 16px; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+    .brand-badge {
+      width: 46px; height: 46px; border-radius: 14px; background: linear-gradient(135deg, var(--accent), #60a5fa);
+      color: white; display: grid; place-items: center; font-weight: 800; font-size: 20px;
+    }
+    .brand h1 { font-size: 18px; margin: 0; }
+    .brand p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+
+    .nav-section { margin-top: 18px; }
+    .nav-title { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; padding-left: 12px; }
+    .nav-link {
+      display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; margin-bottom: 4px; border-radius: 12px;
+      color: var(--muted); cursor: pointer; border: 1px solid transparent;
+    }
+    .nav-link:hover, .nav-link.active { background: var(--accent); color: white; box-shadow: var(--shadow); }
+    .nav-link i { width: 16px; text-align: center; }
+
+    .main { flex: 1; display: flex; flex-direction: column; } 
+    .topbar {
+      height: 72px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 20;
+    }
+    .topbar-search { display: flex; align-items: center; gap: 10px; background: var(--surface-2); padding: 10px 14px; border-radius: 999px; min-width: min(420px, 65vw); }
+    .topbar-search input { border: none; background: transparent; width: 100%; color: var(--text); outline: none; }
+    .topbar-actions { display: flex; align-items: center; gap: 10px; }
+    .icon-btn {
+      width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer;
+    }
+    .user-chip { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 999px; background: var(--surface-2); }
+    .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 700; }
+
+    .content { padding: 24px; display: flex; flex-direction: column; gap: 18px; }
+    .page { display: none; }
+    .page.active { display: block; }
+
+    .hero-card, .card, .panel, .table-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow); }
+    .hero-card { padding: 22px; display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+    .hero-card h2 { margin: 0 0 8px; font-size: 24px; }
+    .hero-card p { margin: 0; color: var(--muted); }
+    .pill { display: inline-flex; padding: 8px 12px; border-radius: 999px; background: var(--accent); color: white; font-size: 13px; }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(4, minmax(180px, 1fr)); gap: 16px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; box-shadow: var(--shadow); }
+    .stat-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .stat-value { font-size: 24px; font-weight: 700; margin-top: 6px; }
+    .stat-trend { font-size: 13px; margin-top: 8px; color: var(--success); }
+
+    .grid-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+    .panel { padding: 18px; }
+    .panel h3, .card h3 { margin-top: 0; margin-bottom: 10px; }
+    .list { display: flex; flex-direction: column; gap: 8px; }
+    .list-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); }
+
+    .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+    .controls { display: flex; gap: 10px; flex-wrap: wrap; }
+    .materials-summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; color: var(--muted); font-size: 14px; }
+    .materials-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+    .material-card { display: flex; flex-direction: column; gap: 12px; padding: 14px; border: 1px solid var(--border); border-radius: 18px; background: linear-gradient(180deg, var(--surface), var(--surface-2)); box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05); min-height: 300px; }
+    .material-image { height: 120px; border-radius: 14px; background-size: cover; background-position: center; border: 1px solid rgba(255,255,255,0.25); position: relative; overflow: hidden; }
+    .material-image::after { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent 60%); }
+    .material-image .image-label { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: flex-start; padding: 12px; font-weight: 700; color: white; text-shadow: 0 2px 8px rgba(0,0,0,0.35); }
+    .material-card h4 { margin: 0; font-size: 18px; }
+    .material-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+    .material-chip { display: inline-flex; align-items: center; padding: 5px 8px; border-radius: 999px; background: rgba(37, 99, 235, 0.12); color: var(--accent); font-size: 12px; font-weight: 600; }
+    .material-card p { margin: 0; color: var(--muted); font-size: 14px; }
+    .material-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
+    .material-stat { border: 1px solid var(--border); border-radius: 12px; padding: 10px; background: rgba(255,255,255,0.6); }
+    .material-stat strong { display: block; font-size: 14px; }
+    .material-stat span { font-size: 12px; color: var(--muted); }
+    .material-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; margin-top: auto; }
+    .material-actions .btn, .material-actions .btn-secondary, .material-actions .btn-danger { padding: 8px 10px; border-radius: 999px; font-size: 13px; }
+    .btn, .btn-secondary, .btn-danger { border: none; padding: 10px 14px; border-radius: 10px; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .btn:hover, .btn-secondary:hover, .btn-danger:hover { transform: translateY(-1px); }
+    .btn { background: var(--accent); color: white; }
+    .btn-secondary { background: var(--surface-2); color: var(--text); }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); }
+    textarea { min-height: 90px; resize: vertical; }
+    .field { margin-bottom: 10px; }
+    .field label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--muted); }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+    .status-badge { display: inline-block; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .status-in { background: rgba(22, 163, 74, 0.14); color: var(--success); }
+    .status-low { background: rgba(245, 158, 11, 0.16); color: var(--warning); }
+    .status-out { background: rgba(220, 38, 38, 0.14); color: var(--danger); }
+    .actions button { margin-right: 6px; margin-bottom: 6px; }
+
+    .pagination { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+    .page-btn { padding: 8px 10px; border: 1px solid var(--border); background: var(--surface); border-radius: 8px; cursor: pointer; }
+    .page-btn.active { background: var(--accent); color: white; }
+
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(2, 8, 23, 0.7); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 999; }
+    .modal-backdrop.open { display: flex; }
+    .modal { background: var(--surface); width: min(720px, 100%); border-radius: 18px; padding: 20px; box-shadow: var(--shadow); max-height: 90vh; overflow: auto; }
+    .modal h3 { margin-top: 0; }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+
+    .chart-wrap { position: relative; height: 260px; }
+    .tiny-chart { position: relative; height: 220px; }
+    .machine-card { border: 1px solid var(--border); border-radius: 14px; padding: 14px; background: var(--surface-2); }
+    .machine-card strong { display: block; margin-bottom: 4px; }
+    .scanner-frame { border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: #000; min-height: 320px; }
+    #reader { width: 100%; min-height: 320px; }
+    .toast { position: fixed; right: 20px; bottom: 20px; background: var(--accent-2); color: white; padding: 12px 14px; border-radius: 12px; display: none; z-index: 1000; }
+    .empty-state { padding: 18px; text-align: center; color: var(--muted); }
+    .badge-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+    .auth-shell { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+    .auth-card { width: min(460px, 100%); background: var(--surface); border: 1px solid var(--border); border-radius: 20px; box-shadow: var(--shadow); padding: 24px; }
+    .auth-switch { display: flex; gap: 8px; margin-bottom: 14px; }
+    .auth-switch button { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); cursor: pointer; }
+    .auth-switch button.active { background: var(--accent); color: white; }
+    .auth-card h2 { margin: 0 0 8px; }
+    .auth-card p { margin: 0 0 16px; color: var(--muted); }
+    .hidden { display: none !important; }
+
+    @media (max-width: 1100px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .app-shell { flex-direction: column; }
+      .topbar { padding: 0 14px; }
+      .content { padding: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="authScreen" class="auth-shell">
+    <div class="auth-card">
+      <div class="auth-switch">
+        <button class="active" id="showLoginBtn" type="button">Login</button>
+        <button id="showSignupBtn" type="button">Sign up</button>
+      </div>
+      <h2 id="authTitle">Welcome back</h2>
+      <p id="authDescription">Sign in to manage your workshop materials.</p>
+      <form id="loginForm">
+        <div class="field"><label>Email</label><input id="loginEmail" type="email" required /></div>
+        <div class="field"><label>Password</label><input id="loginPassword" type="password" required /></div>
+        <button class="btn" style="width:100%;" type="submit">Login</button>
+      </form>
+      <form id="signupForm" class="hidden">
+        <div class="field"><label>Full name</label><input id="signupName" required /></div>
+        <div class="field"><label>Email</label><input id="signupEmail" type="email" required /></div>
+        <div class="field"><label>Password</label><input id="signupPassword" type="password" required /></div>
+        <button class="btn" style="width:100%;" type="submit">Create account</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="app-shell hidden" id="appShell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-badge">MT</div>
+        <div>
+          <h1>Material Tracker</h1>
+          <p>Workshop Operations</p>
+        </div>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-title">Main</div>
+        <div class="nav-link active" data-page="dashboard"><i>◉</i> Dashboard</div>
+        <div class="nav-link" data-page="materials"><i>▣</i> Materials</div>
+        <div class="nav-link" data-page="categories"><i>◫</i> Categories</div>
+        <div class="nav-link" data-page="suppliers"><i>⌁</i> Suppliers</div>
+        <div class="nav-link" data-page="storage"><i>⬢</i> Storage Locations</div>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-title">Operations</div>
+        <div class="nav-link" data-page="machines"><i>⚙</i> 3D Printers</div>
+        <div class="nav-link" data-page="lasers"><i>⚒</i> Laser Cutters</div>
+        <div class="nav-link" data-page="assignments"><i>⤴</i> Machine Assignments</div>
+        <div class="nav-link" data-page="projects"><i>▤</i> Projects</div>
+        <div class="nav-link" data-page="inventory"><i>📦</i> Inventory History</div>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-title">Business</div>
+        <div class="nav-link" data-page="reports"><i>📊</i> Reports</div>
+        <div class="nav-link" data-page="notifications"><i>🔔</i> Notifications</div>
+        <div class="nav-link" data-page="users"><i>👤</i> Users</div>
+        <div class="nav-link" data-page="scanner"><i>📷</i> QR Scanner</div>
+        <div class="nav-link" data-page="settings"><i>⚙️</i> Settings</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-search">
+          <i>⌕</i>
+          <input id="globalSearch" placeholder="Search materials, suppliers, machines..." />
+        </div>
+        <div class="topbar-actions">
+          <button class="icon-btn" id="themeToggle" title="Toggle theme">☀</button>
+          <button class="icon-btn" id="refreshButton" title="Refresh data">↻</button>
+          <button class="icon-btn" id="logoutBtn" title="Logout">⇦</button>
+          <div class="user-chip">
+            <div class="avatar" id="userAvatar">U</div>
+            <div>
+              <div id="userName">Guest</div>
+              <small id="userRole">Operator</small>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="content">
+        <section id="dashboardPage" class="page active">
+          <div class="hero-card">
+            <div>
+              <div class="pill">Professional Manufacturing Control Center</div>
+              <h2>Manufacturing Material Tracker</h2>
+              <p>Monitor stock, machine utilization, assignments, and usage trends across your digital fabrication workshop.</p>
+            </div>
+            <button class="btn" id="dashboardRefreshBtn">Refresh Dashboard</button>
+          </div>
+
+          <div class="stats-grid" id="statsGrid"></div>
+
+          <div class="grid-2" style="margin-top: 16px;">
+            <div class="panel">
+              <h3>Material Categories</h3>
+              <div class="chart-wrap"><canvas id="categoriesChart"></canvas></div>
+            </div>
+            <div class="panel">
+              <h3>Stock Levels</h3>
+              <div class="tiny-chart"><canvas id="stockChart"></canvas></div>
+            </div>
+          </div>
+
+          <div class="grid-2" style="margin-top: 16px;">
+            <div class="panel">
+              <h3>Monthly Usage</h3>
+              <div class="chart-wrap"><canvas id="usageChart"></canvas></div>
+            </div>
+            <div class="panel">
+              <h3>Machine Usage</h3>
+              <div class="tiny-chart"><canvas id="machineChart"></canvas></div>
+            </div>
+          </div>
+
+          <div class="grid-2" style="margin-top: 16px;">
+            <div class="panel">
+              <h3>Inventory Trends</h3>
+              <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+            </div>
+            <div class="panel">
+              <h3>Recent Alerts</h3>
+              <div id="alertList" class="list"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="materialsPage" class="page">
+          <div class="hero-card">
+            <div>
+              <div class="pill">Materials</div>
+              <h2>Inventory Master List</h2>
+              <p>Search, sort, filter, and manage 3D printing and laser cutting materials.</p>
+            </div>
+            <div class="controls">
+              <button class="btn" id="addMaterialBtn">Add Material</button>
+              <button class="btn-secondary" id="printMaterialsBtn">Print List</button>
+            </div>
+          </div>
+
+          <div class="card" style="padding: 16px; margin-top: 16px;">
+            <div class="toolbar">
+              <div class="controls">
+                <input id="materialSearch" placeholder="Search materials" />
+                <select id="materialTypeFilter">
+                  <option value="all">All types</option>
+                  <option value="3D Printing">3D Printing</option>
+                  <option value="Laser Cutting">Laser Cutting</option>
+                  <option value="Custom">Custom</option>
+                </select>
+                <select id="materialStatusFilter">
+                  <option value="all">All status</option>
+                  <option value="In Stock">In Stock</option>
+                  <option value="Low Stock">Low Stock</option>
+                  <option value="Out of Stock">Out of Stock</option>
+                </select>
+              </div>
+              <div class="controls">
+                <select id="materialSort">
+                  <option value="name">Sort by name</option>
+                  <option value="quantity">Sort by quantity</option>
+                  <option value="cost">Sort by cost</option>
+                  <option value="status">Sort by status</option>
+                </select>
+                <select id="pageSizeSelect">
+                  <option value="8">8 per page</option>
+                  <option value="10">10 per page</option>
+                  <option value="20">20 per page</option>
+                </select>
+              </div>
+            </div>
+            <div class="materials-summary">
+              <span id="materialsSummary">Loading materials…</span>
+              <span class="material-chip">Modern inventory view</span>
+            </div>
+            <div id="materialsGrid" class="materials-grid"></div>
+            <div class="pagination" id="pagination"></div>
+          </div>
+        </section>
+
+        <section id="categoriesPage" class="page">
+          <div class="hero-card">
+            <div><div class="pill">Categories</div><h2>Material Categories</h2><p>Track 3D printing and laser cutting families by category and usage.</p></div>
+            <button class="btn" id="addCategoryBtn">Add Category</button>
+          </div>
+          <div class="grid-2" style="margin-top: 16px;">
+            <div class="panel"><h3>Category Summary</h3><div id="categorySummary" class="list"></div></div>
+            <div class="panel"><h3>Popular Categories</h3><div id="categoryInsights" class="list"></div></div>
+          </div>
+        </section>
+
+        <section id="suppliersPage" class="page">
+          <div class="hero-card">
+            <div><div class="pill">Suppliers</div><h2>Vendor & Supplier Management</h2><p>Keep purchasing, lead times, and supplier performance visible.</p></div>
+            <button class="btn" id="addSupplierBtn">Add Supplier</button>
+          </div>
+          <div class="grid-2" style="margin-top: 16px;"><div class="panel"><h3>Suppliers</h3><div id="supplierList" class="list"></div></div><div class="panel"><h3>Upcoming Orders</h3><div id="supplierOrders" class="list"></div></div></div>
+        </section>
+
+        <section id="storagePage" class="page">
+          <div class="hero-card"><div><div class="pill">Storage</div><h2>Storage Locations</h2><p>Monitor stock placement, access, and material segregation.</p></div><button class="btn" id="addStorageBtn">Add Location</button></div>
+          <div class="grid-2" style="margin-top: 16px;"><div class="panel"><h3>Locations</h3><div id="storageList" class="list"></div></div><div class="panel"><h3>Capacity Overview</h3><div id="storageCapacity" class="list"></div></div></div>
+        </section>
+
+        <section id="machinesPage" class="page">
+          <div class="hero-card">
+            <div><div class="pill">Machines</div><h2>3D Printers & Laser Cutters</h2><p>Track machine status, maintenance, and current material load.</p></div>
+            <button class="btn" id="addMachineBtn">Add Machine</button>
+          </div>
+          <div class="grid-2" style="margin-top: 16px;" id="machinesGrid"></div>
+        </section>
+
+        <section id="lasersPage" class="page">
+          <div class="hero-card"><div><div class="pill">Laser Cutters</div><h2>Laser Equipment Overview</h2><p>Inspect each laser cutter’s settings, bed size, and current material.</p></div></div>
+          <div class="grid-2" style="margin-top: 16px;" id="laserGrid"></div>
+        </section>
+
+        <section id="assignmentsPage" class="page">
+          <div class="hero-card"><div><div class="pill">Assignments</div><h2>Machine Assignments</h2><p>Assign materials to machines while enforcing one active assignment per material.</p></div><button class="btn" id="assignMaterialBtn">Assign Material</button></div>
+          <div class="card" style="padding: 16px; margin-top: 16px;"><table><thead><tr><th>Machine</th><th>Material</th><th>Assigned By</th><th>Assigned Date</th><th>Usage Remaining</th><th>Est. Time Remaining</th></tr></thead><tbody id="assignmentsTableBody"></tbody></table></div>
+        </section>
+
+        <section id="projectsPage" class="page">
+          <div class="hero-card">
+            <div><div class="pill">Projects</div><h2>Workshop Projects</h2><p>Monitor active projects and allocated materials.</p></div>
+            <button class="btn" id="addProjectBtn">Add Project</button>
+          </div>
+          <div class="grid-2" style="margin-top: 16px;" id="projectsGrid"></div>
+        </section>
+
+        <section id="inventoryPage" class="page">
+          <div class="hero-card"><div><div class="pill">Inventory</div><h2>Inventory History</h2><p>Track stock in, stock out, usage, assignments, returns, damage, transfers and discard events.</p></div><button class="btn" id="addInventoryBtn">Add Transaction</button></div>
+          <div class="card" style="padding: 16px; margin-top: 16px;"><table><thead><tr><th>Date</th><th>Material</th><th>Type</th><th>Quantity</th><th>Reference</th><th>Notes</th></tr></thead><tbody id="inventoryTableBody"></tbody></table></div>
+        </section>
+
+        <section id="reportsPage" class="page">
+          <div class="hero-card"><div><div class="pill">Reports</div><h2>Operational Reports</h2><p>Export reports in CSV, Excel, PDF or print them directly.</p></div></div>
+          <div class="grid-2" style="margin-top: 16px;">
+            <div class="panel">
+              <h3>Report Types</h3>
+              <div class="list" id="reportList"></div>
+            </div>
+            <div class="panel">
+              <h3>Export Actions</h3>
+              <div class="controls" style="flex-direction: column; align-items: stretch;">
+                <button class="btn" data-export="csv">Export CSV</button>
+                <button class="btn-secondary" data-export="excel">Export Excel</button>
+                <button class="btn-secondary" data-export="pdf">Export PDF</button>
+                <button class="btn-secondary" data-export="print">Print Report</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="notificationsPage" class="page">
+          <div class="hero-card">
+            <div><div class="pill">Notifications</div><h2>Operational Alerts</h2><p>Stay ahead of low stock, maintenance cycles, and pending procurements.</p></div>
+            <button class="btn" id="addNotificationBtn">Add Alert</button>
+          </div>
+          <div class="card" style="padding: 16px; margin-top: 16px;" id="notificationList"></div>
+        </section>
+
+        <section id="usersPage" class="page">
+          <div class="hero-card"><div><div class="pill">Users</div><h2>Access & Permissions</h2><p>Login as different roles to see how the workspace permissions behave.</p></div></div>
+          <div class="grid-2" style="margin-top: 16px;">
+            <div class="panel">
+              <h3>System Roles</h3>
+              <div class="list" id="roleButtons"></div>
+            </div>
+            <div class="panel">
+              <h3>Current Permissions</h3>
+              <div id="permissionSummary" class="list"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="scannerPage" class="page">
+          <div class="hero-card"><div><div class="pill">QR & Barcode</div><h2>Scanner & Label Generation</h2><p>Use the built-in camera to scan QR codes and barcodes, then open material details instantly.</p></div></div>
+          <div class="grid-2" style="margin-top: 16px;">
+            <div class="panel">
+              <h3>Camera Scanner</h3>
+              <div class="scanner-frame">
+                <div id="reader"></div>
+              </div>
+              <div class="controls" style="margin-top: 10px;">
+                <button class="btn" id="startScannerBtn">Start Scanner</button>
+                <button class="btn-secondary" id="stopScannerBtn">Stop Scanner</button>
+              </div>
+              <p id="scannerMessage" style="margin-top: 10px; color: var(--muted);"></p>
+            </div>
+            <div class="panel">
+              <h3>Live Material Lookup</h3>
+              <div id="scannerResult" class="empty-state">Scan a QR code or barcode to populate this area.</div>
+            </div>
+          </div>
+        </section>
+
+        <section id="settingsPage" class="page">
+          <div class="hero-card"><div><div class="pill">Settings</div><h2>Workspace Preferences</h2><p>Fine-tune the interface, notifications, and system status reporting.</p></div></div>
+          <div class="grid-2" style="margin-top: 16px;">
+            <div class="panel">
+              <h3>Appearance</h3>
+              <div class="field"><label>Accent colour</label><input type="color" id="accentPicker" /></div>
+              <div class="field"><label><input type="checkbox" id="darkModeToggle" /> Dark mode</label></div>
+              <div class="field"><label><input type="checkbox" id="autoRefreshToggle" checked /> Auto refresh</label></div>
+              <div class="field"><label><input type="checkbox" id="desktopNotificationsToggle" checked /> Desktop notifications</label></div>
+            </div>
+            <div class="panel">
+              <h3>Database Status</h3>
+              <div id="databaseStatus" class="list"></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="materialModalBackdrop">
+    <div class="modal">
+      <h3 id="modalTitle">Material Details</h3>
+      <form id="materialForm">
+        <div class="grid-2">
+          <div class="field"><label>Material is for</label><select name="applicationType" id="applicationTypeSelect"><option value="Filament">Filament</option><option value="Laser Cutter Material">Laser Cutter Material</option></select></div>
+          <div class="field"><label>Material Type</label><select name="type" id="materialTypeSelect"></select></div>
+        </div>
+        <div class="field"><label>Material Name</label><input name="name" required /></div>
+        <div id="filamentFields">
+          <div class="grid-2">
+            <div class="field"><label>Diameter</label><input name="filamentDiameter" /></div>
+            <div class="field"><label>Weight</label><input name="filamentWeight" /></div>
+          </div>
+        </div>
+        <div id="laserFields" class="hidden">
+          <div class="grid-2">
+            <div class="field"><label>Sheet Size</label><input name="sheetSize" /></div>
+            <div class="field"><label>Thickness</label><input name="thickness" /></div>
+          </div>
+          <div class="grid-2">
+            <div class="field"><label>Length</label><input name="length" /></div>
+            <div class="field"><label>Width</label><input name="width" /></div>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field"><label>Manufacturer</label><input name="manufacturer" /></div>
+          <div class="field"><label>Colour</label><input name="colour" /></div>
+        </div>
+        <div class="grid-2">
+          <div class="field"><label>Quantity</label><input name="quantity" type="number" /></div>
+          <div class="field"><label>Unit</label><input name="unit" value="kg" /></div>
+        </div>
+        <div class="grid-2">
+          <div class="field"><label>Current Stock</label><input name="currentStock" type="number" /></div>
+          <div class="field"><label>Minimum Stock</label><input name="minimumStock" type="number" /></div>
+        </div>
+        <div class="grid-2">
+          <div class="field"><label>Location</label><input name="location" /></div>
+          <div class="field"><label>Assigned Machine</label><input name="assignedMachine" /></div>
+        </div>
+        <div class="grid-2">
+          <div class="field"><label>Supplier</label><input name="supplier" /></div>
+          <div class="field"><label>Cost</label><input name="cost" type="number" /></div>
+        </div>
+        <div class="field"><label>Status</label><select name="status"><option>In Stock</option><option>Low Stock</option><option>Out of Stock</option></select></div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close-modal>Cancel</button>
+          <button type="submit" class="btn">Save Material</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="assignModalBackdrop">
+    <div class="modal">
+      <h3>Assign Material to Machine</h3>
+      <form id="assignForm">
+        <div class="field"><label>Machine</label><select id="assignMachineSelect"></select></div>
+        <div class="field"><label>Material</label><select id="assignMaterialSelect"></select></div>
+        <div class="field"><label>Assigned By</label><input id="assignBy" value="Ava Chen" /></div>
+        <div class="field"><label>Usage Remaining</label><input id="assignUsage" type="number" value="100" /></div>
+        <div class="field"><label>Estimated Time Remaining</label><input id="assignTime" value="24h" /></div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close-modal>Cancel</button>
+          <button type="submit" class="btn">Assign</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="machineModalBackdrop">
+    <div class="modal">
+      <h3>Add Machine</h3>
+      <form id="machineForm">
+        <div class="grid-2">
+          <div class="field"><label>Type</label><select name="type"><option value="3D Printer">3D Printer</option><option value="Laser Cutter">Laser Cutter</option></select></div>
+          <div class="field"><label>Manufacturer</label><input name="manufacturer" required /></div>
+        </div>
+        <div class="grid-2">
+          <div class="field"><label>Model</label><input name="model" required /></div>
+          <div class="field"><label>Serial</label><input name="serial" /></div>
+        </div>
+        <div class="grid-2">
+          <div class="field"><label>Status</label><select name="status"><option>Online</option><option>Maintenance</option><option>Offline</option></select></div>
+          <div class="field"><label>Location</label><input name="location" /></div>
+        </div>
+        <div class="field"><label>Current Project</label><input name="currentProject" /></div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close-modal>Cancel</button>
+          <button type="submit" class="btn">Save Machine</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="supplierModalBackdrop">
+    <div class="modal">
+      <h3>Add Supplier</h3>
+      <form id="supplierForm">
+        <div class="field"><label>Name</label><input name="name" required /></div>
+        <div class="field"><label>Contact</label><input name="contact" /></div>
+        <div class="field"><label>Lead Time</label><input name="leadTime" /></div>
+        <div class="field"><label>Status</label><select name="status"><option>Active</option><option>Pending</option><option>Inactive</option></select></div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close-modal>Cancel</button>
+          <button type="submit" class="btn">Save Supplier</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="projectModalBackdrop">
+    <div class="modal">
+      <h3>Add Project</h3>
+      <form id="projectForm">
+        <div class="field"><label>Name</label><input name="name" required /></div>
+        <div class="field"><label>Owner</label><input name="owner" /></div>
+        <div class="field"><label>Progress %</label><input name="progress" type="number" value="25" /></div>
+        <div class="field"><label>Materials</label><input name="materials" placeholder="PLA Black, PETG White" /></div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close-modal>Cancel</button>
+          <button type="submit" class="btn">Save Project</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="notificationModalBackdrop">
+    <div class="modal">
+      <h3>Add Alert</h3>
+      <form id="notificationForm">
+        <div class="grid-2">
+          <div class="field"><label>Type</label><input name="type" value="Stock" /></div>
+          <div class="field"><label>Severity</label><select name="severity"><option value="info">Info</option><option value="warning">Warning</option><option value="danger">Danger</option></select></div>
+        </div>
+        <div class="field"><label>Title</label><input name="title" required /></div>
+        <div class="field"><label>Detail</label><textarea name="detail"></textarea></div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close-modal>Cancel</button>
+          <button type="submit" class="btn">Save Alert</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="inventoryModalBackdrop">
+    <div class="modal">
+      <h3>Add Inventory Transaction</h3>
+      <form id="inventoryForm">
+        <div class="field"><label>Material</label><input name="material" required /></div>
+        <div class="grid-2">
+          <div class="field"><label>Type</label><input name="type" value="Stock In" /></div>
+          <div class="field"><label>Quantity</label><input name="quantity" type="number" value="5" /></div>
+        </div>
+        <div class="field"><label>Reference</label><input name="reference" /></div>
+        <div class="field"><label>Notes</label><textarea name="notes"></textarea></div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close-modal>Cancel</button>
+          <button type="submit" class="btn">Save Transaction</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="categoryModalBackdrop">
+    <div class="modal">
+      <h3>Add Category</h3>
+      <form id="categoryForm">
+        <div class="field"><label>Name</label><input name="name" required /></div>
+        <div class="field"><label>Description</label><textarea name="description"></textarea></div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close-modal>Cancel</button>
+          <button type="submit" class="btn">Save Category</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="storageModalBackdrop">
+    <div class="modal">
+      <h3>Add Storage Location</h3>
+      <form id="storageForm">
+        <div class="field"><label>Name</label><input name="name" required /></div>
+        <div class="field"><label>Capacity</label><input name="capacity" /></div>
+        <div class="field"><label>Notes</label><textarea name="notes"></textarea></div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close-modal>Cancel</button>
+          <button type="submit" class="btn">Save Location</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/JsBarcode.all.min.js"></script>
+  <script>
+    const demoMaterials = [
+      { id: 1001, name: 'PLA Black', type: '3D Printing', manufacturer: 'Bambu Lab', colour: 'Black', diameter: '1.75 mm', thickness: '-', sheetSize: '-', length: '-', quantity: 42, unit: 'kg', currentStock: 42, minimumStock: 10, location: 'Aisle A', assignedMachine: 'Prusa MK4', barcode: 'PLA1001', qrCode: 'PLA1001', supplier: 'Filament Hub', purchaseDate: '2026-06-12', cost: 24, status: 'In Stock' },
+      { id: 1002, name: 'PETG Clear', type: '3D Printing', manufacturer: 'MatterHackers', colour: 'Clear', diameter: '1.75 mm', thickness: '-', sheetSize: '-', length: '-', quantity: 8, unit: 'kg', currentStock: 8, minimumStock: 10, location: 'Aisle B', assignedMachine: 'Formlabs', barcode: 'PETG1002', qrCode: 'PETG1002', supplier: 'Proto Supplies', purchaseDate: '2026-06-18', cost: 27, status: 'Low Stock' },
+      { id: 2001, name: 'Acrylic Clear', type: 'Laser Cutting', manufacturer: 'Perspex', colour: 'Clear', diameter: '-', thickness: '3 mm', sheetSize: '600x400 mm', length: '-', quantity: 14, unit: 'sheet', currentStock: 14, minimumStock: 6, location: 'Laser Rack', assignedMachine: 'Trotec Speedy', barcode: 'ACR2001', qrCode: 'ACR2001', supplier: 'Cutting Edge', purchaseDate: '2026-05-24', cost: 18, status: 'In Stock' },
+      { id: 2002, name: 'Birch Ply', type: 'Laser Cutting', manufacturer: 'Local Mill', colour: 'Light Brown', diameter: '-', thickness: '4 mm', sheetSize: '600x300 mm', length: '-', quantity: 3, unit: 'sheet', currentStock: 3, minimumStock: 6, location: 'Storage Bay 2', assignedMachine: 'Glowforge Pro', barcode: 'BRP2002', qrCode: 'BRP2002', supplier: 'Woodworks', purchaseDate: '2026-06-02', cost: 16, status: 'Low Stock' },
+      { id: 3001, name: 'Custom TPU Flex', type: 'Custom', manufacturer: 'Workshop Lab', colour: 'Blue', diameter: '2.85 mm', thickness: '-', sheetSize: '-', length: '-', quantity: 0, unit: 'kg', currentStock: 0, minimumStock: 5, location: 'Quarantine', assignedMachine: '-', barcode: 'CST3001', qrCode: 'CST3001', supplier: 'In-House', purchaseDate: '2026-07-01', cost: 35, status: 'Out of Stock' }
+    ];
+
+    const demoMachines = [
+      { id: 1, type: '3D Printer', manufacturer: 'Prusa', model: 'MK4', serial: 'PRU-001', nozzle: '0.4 mm', filamentLoaded: 'PLA Black', currentProject: 'Prototype A', printHours: 184, maintenanceHours: 18, status: 'Online', location: 'Bay 1' },
+      { id: 2, type: '3D Printer', manufacturer: 'Bambu Lab', model: 'X1 Carbon', serial: 'BAM-002', nozzle: '0.6 mm', filamentLoaded: 'PETG Clear', currentProject: 'Housing Cover', printHours: 231, maintenanceHours: 42, status: 'Online', location: 'Bay 2' },
+      { id: 3, type: 'Laser Cutter', manufacturer: 'Trotec', model: 'Speedy 100', serial: 'TRC-004', bedSize: '610x305 mm', laserWattage: '100W', lens: 'CO2 Lens', currentMaterial: 'Acrylic Clear', airAssist: 'Enabled', exhaust: 'Enabled', hours: 92, maintenance: 14, status: 'Online', location: 'Laser Bay' },
+      { id: 4, type: 'Laser Cutter', manufacturer: 'Glowforge', model: 'Pro', serial: 'GWF-010', bedSize: '508x304 mm', laserWattage: '45W', lens: 'Optics', currentMaterial: 'Birch Ply', airAssist: 'Enabled', exhaust: 'Enabled', hours: 76, maintenance: 10, status: 'Maintenance', location: 'Laser Bay 2' }
+    ];
+
+    const demoProjects = [
+      { id: 'PRJ-001', name: 'Medical Device Prototype', owner: 'Nadia', progress: 72, materials: ['PLA Black', 'PETG Clear'] },
+      { id: 'PRJ-002', name: 'Architecture Model', owner: 'Theo', progress: 48, materials: ['Acrylic Clear', 'Birch Ply'] }
+    ];
+
+    const demoAssignments = [
+      { id: 1, machine: 'Prusa MK4', material: 'PLA Black', assignedBy: 'Ava Chen', assignedDate: '2026-07-08', usageRemaining: 78, estimatedTimeRemaining: '12h' },
+      { id: 2, machine: 'Trotec Speedy 100', material: 'Acrylic Clear', assignedBy: 'Mina', assignedDate: '2026-07-10', usageRemaining: 53, estimatedTimeRemaining: '8h' }
+    ];
+
+    const demoInventory = [
+      { date: '2026-07-12', material: 'PLA Black', type: 'Stock In', quantity: 20, reference: 'PO-104', notes: 'Restock received' },
+      { date: '2026-07-11', material: 'Acrylic Clear', type: 'Used', quantity: 3, reference: 'PRJ-001', notes: 'Prototype cut' },
+      { date: '2026-07-09', material: 'PETG Clear', type: 'Assigned', quantity: 2, reference: 'M-002', notes: 'Machine allocated' },
+      { date: '2026-07-08', material: 'Custom TPU Flex', type: 'Discarded', quantity: 1, reference: 'QA-01', notes: 'Quality issue' }
+    ];
+
+    const demoNotifications = [
+      { type: 'Low Stock', title: 'PETG Clear is running low', detail: 'Only 8 kg remain', severity: 'warning' },
+      { type: 'Maintenance', title: 'Glowforge Pro needs maintenance', detail: 'Service window is due this week', severity: 'danger' },
+      { type: 'Purchase Order', title: 'Purchase order reminder', detail: 'Receive acrylic shipment tomorrow', severity: 'info' }
+    ];
+
+    const demoUsers = [
+      { role: 'Admin', permissions: ['All access', 'Manage users', 'Approve purchases'] },
+      { role: 'Manager', permissions: ['View all inventory', 'Approve orders', 'Manage projects'] },
+      { role: 'Operator', permissions: ['Manage stock', 'Scan materials', 'Run machines'] },
+      { role: 'Viewer', permissions: ['Read-only access', 'View reports'] }
+    ];
+
+    const state = {
+      materials: [],
+      machines: [],
+      projects: [],
+      assignments: [],
+      inventory: [],
+      notifications: [],
+      suppliers: [],
+      categories: [],
+      locations: [],
+      activePage: 'dashboard',
+      role: 'Manager',
+      searchQuery: '',
+      pageSize: 8,
+      currentPage: 1,
+      sortKey: 'name',
+      sortDirection: 'asc',
+      typeFilter: 'all',
+      statusFilter: 'all',
+      selectedMaterial: null,
+      editingMaterialId: null,
+      charts: {},
+      darkMode: false,
+      accent: '#2563eb',
+      autoRefresh: true,
+      notificationsEnabled: true,
+      currentUser: null,
+      scanner: null,
+      scannerActive: false,
+      currentReport: 'Inventory Report'
+    };
+
+    const els = {
+      materialSearch: document.getElementById('materialSearch'),
+      materialTypeFilter: document.getElementById('materialTypeFilter'),
+      materialStatusFilter: document.getElementById('materialStatusFilter'),
+      materialSort: document.getElementById('materialSort'),
+      pageSizeSelect: document.getElementById('pageSizeSelect'),
+      materialsGrid: document.getElementById('materialsGrid'),
+      materialsSummary: document.getElementById('materialsSummary'),
+      pagination: document.getElementById('pagination'),
+      globalSearch: document.getElementById('globalSearch')
+    };
+
+    function init() {
+      bindEvents();
+      updateMaterialTypeOptions('Filament');
+      toggleMaterialFieldSets('Filament');
+      applyTheme();
+      restoreSession();
+      loadMaterials();
+      loadMachinesFromServer();
+      loadProjectsFromServer();
+      renderAssignments();
+      loadInventoryFromServer();
+      loadNotificationsFromServer();
+      renderUsers();
+      renderReports();
+      renderSettings();
+      loadLocationsFromServer();
+      loadCategoriesFromServer();
+      loadSuppliersFromServer();
+      loadDashboard();
+      showPage('dashboard');
+      if (state.autoRefresh) {
+        setInterval(() => refreshAll(), 30000);
+      }
+    }
+
+    function bindEvents() {
+      document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', () => showPage(link.dataset.page));
+      });
+      document.getElementById('showLoginBtn').addEventListener('click', () => switchAuthMode('login'));
+      document.getElementById('showSignupBtn').addEventListener('click', () => switchAuthMode('signup'));
+      document.getElementById('logoutBtn').addEventListener('click', logoutUser);
+      document.getElementById('loginForm').addEventListener('submit', handleLogin);
+      document.getElementById('signupForm').addEventListener('submit', handleSignup);
+      document.getElementById('applicationTypeSelect').addEventListener('change', e => {
+        updateMaterialTypeOptions(e.target.value);
+        toggleMaterialFieldSets(e.target.value);
+      });
+      document.getElementById('themeToggle').addEventListener('click', toggleDarkMode);
+      document.getElementById('refreshButton').addEventListener('click', refreshAll);
+      document.getElementById('dashboardRefreshBtn').addEventListener('click', refreshAll);
+      document.getElementById('addMaterialBtn').addEventListener('click', () => openMaterialModal());
+      document.getElementById('assignMaterialBtn').addEventListener('click', () => openAssignModal());
+      document.getElementById('addMachineBtn').addEventListener('click', () => openModal('machine'));
+      document.getElementById('addSupplierBtn').addEventListener('click', () => openModal('supplier'));
+      document.getElementById('addProjectBtn').addEventListener('click', () => openModal('project'));
+      document.getElementById('addNotificationBtn').addEventListener('click', () => openModal('notification'));
+      document.getElementById('addInventoryBtn').addEventListener('click', () => openModal('inventory'));
+      document.getElementById('addCategoryBtn').addEventListener('click', () => openModal('category'));
+      document.getElementById('addStorageBtn').addEventListener('click', () => openModal('storage'));
+      document.getElementById('printMaterialsBtn').addEventListener('click', printMaterials);
+      document.getElementById('startScannerBtn').addEventListener('click', startScanner);
+      document.getElementById('stopScannerBtn').addEventListener('click', stopScanner);
+      document.getElementById('materialForm').addEventListener('submit', saveMaterial);
+      document.getElementById('assignForm').addEventListener('submit', assignMaterial);
+      document.getElementById('machineForm').addEventListener('submit', handleMachineCreate);
+      document.getElementById('supplierForm').addEventListener('submit', handleSupplierCreate);
+      document.getElementById('projectForm').addEventListener('submit', handleProjectCreate);
+      document.getElementById('notificationForm').addEventListener('submit', handleNotificationCreate);
+      document.getElementById('inventoryForm').addEventListener('submit', handleInventoryCreate);
+      document.getElementById('categoryForm').addEventListener('submit', handleCategoryCreate);
+      document.getElementById('storageForm').addEventListener('submit', handleStorageCreate);
+      document.querySelectorAll('[data-close-modal]').forEach(btn => btn.addEventListener('click', closeModals));
+      document.getElementById('materialModalBackdrop').addEventListener('click', e => { if (e.target.id === 'materialModalBackdrop') closeModals(); });
+      document.getElementById('assignModalBackdrop').addEventListener('click', e => { if (e.target.id === 'assignModalBackdrop') closeModals(); });
+      document.getElementById('machineModalBackdrop').addEventListener('click', e => { if (e.target.id === 'machineModalBackdrop') closeModals(); });
+      document.getElementById('supplierModalBackdrop').addEventListener('click', e => { if (e.target.id === 'supplierModalBackdrop') closeModals(); });
+      document.getElementById('projectModalBackdrop').addEventListener('click', e => { if (e.target.id === 'projectModalBackdrop') closeModals(); });
+      document.getElementById('notificationModalBackdrop').addEventListener('click', e => { if (e.target.id === 'notificationModalBackdrop') closeModals(); });
+      document.getElementById('inventoryModalBackdrop').addEventListener('click', e => { if (e.target.id === 'inventoryModalBackdrop') closeModals(); });
+      document.getElementById('categoryModalBackdrop').addEventListener('click', e => { if (e.target.id === 'categoryModalBackdrop') closeModals(); });
+      document.getElementById('storageModalBackdrop').addEventListener('click', e => { if (e.target.id === 'storageModalBackdrop') closeModals(); });
+      document.querySelectorAll('[data-export]').forEach(btn => btn.addEventListener('click', () => exportReport(btn.dataset.export)));
+      document.getElementById('globalSearch').addEventListener('input', e => {
+        state.searchQuery = e.target.value.toLowerCase();
+        renderMaterials();
+      });
+      document.getElementById('materialSearch').addEventListener('input', e => {
+        state.searchQuery = e.target.value.toLowerCase();
+        renderMaterials();
+      });
+      document.getElementById('materialTypeFilter').addEventListener('change', e => { state.typeFilter = e.target.value; renderMaterials(); });
+      document.getElementById('materialStatusFilter').addEventListener('change', e => { state.statusFilter = e.target.value; renderMaterials(); });
+      document.getElementById('materialSort').addEventListener('change', e => { state.sortKey = e.target.value; renderMaterials(); });
+      document.getElementById('pageSizeSelect').addEventListener('change', e => { state.pageSize = Number(e.target.value); state.currentPage = 1; renderMaterials(); });
+      document.getElementById('darkModeToggle').addEventListener('change', toggleDarkMode);
+      document.getElementById('autoRefreshToggle').addEventListener('change', e => { state.autoRefresh = e.target.checked; });
+      document.getElementById('desktopNotificationsToggle').addEventListener('change', e => { state.notificationsEnabled = e.target.checked; });
+      document.getElementById('accentPicker').addEventListener('input', e => { state.accent = e.target.value; document.documentElement.style.setProperty('--accent', state.accent); localStorage.setItem('trackerAccent', state.accent); });
+    }
+
+    function showPage(page) {
+      state.activePage = page;
+      document.querySelectorAll('.page').forEach(section => section.classList.remove('active'));
+      document.querySelectorAll('.nav-link').forEach(link => link.classList.toggle('active', link.dataset.page === page));
+      const target = document.getElementById(`${page}Page`);
+      if (target) target.classList.add('active');
+      if (page === 'dashboard') loadDashboard();
+      else if (page === 'materials') renderMaterials();
+      else if (page === 'machines' || page === 'lasers') renderMachines();
+      else if (page === 'assignments') renderAssignments();
+      else if (page === 'inventory') renderInventory();
+      else if (page === 'notifications') renderNotifications();
+      else if (page === 'users') renderUsers();
+      else if (page === 'reports') renderReports();
+      else if (page === 'settings') renderSettings();
+      else if (page === 'categories') renderCategories();
+      else if (page === 'suppliers') renderSuppliers();
+      else if (page === 'storage') renderStorage();
+      else if (page === 'scanner') renderScanner();
+    }
+
+    async function loadMaterials() {
+      try {
+        const response = await fetch('/api/materials');
+        if (!response.ok) throw new Error('Unable to reach API');
+        const data = await response.json();
+        state.materials = Array.isArray(data) ? data.map(normalizeMaterial) : [];
+      } catch (error) {
+        state.materials = [];
+        toastMessage('No material data available from SQLite.');
+      }
+      renderMaterials();
+      refreshDashboard();
+      renderCategories();
+      renderSuppliers();
+      renderStorage();
+      renderAssignments();
+      renderInventory();
+    }
+
+    function updateMaterialTypeOptions(applicationType) {
+      const select = document.getElementById('materialTypeSelect');
+      if (!select) return;
+      const filamentTypes = ['PLA', 'PETG', 'ABS', 'ASA', 'TPU', 'Nylon', 'Carbon Fibre', 'Wood Filled', 'Metal Filled', 'Resin', 'Custom'];
+      const laserTypes = ['Acrylic', 'MDF', 'Plywood', 'Birch Ply', 'Foam Board', 'Card', 'Leather', 'Paper', 'Fabric', 'PETG Sheet', 'Polycarbonate', 'Delrin', 'Rubber', 'Cork', 'Custom'];
+      const options = applicationType === 'Laser Cutter Material' ? laserTypes : filamentTypes;
+      const previousValue = select.value || options[0];
+      select.innerHTML = options.map(option => `<option value="${option}">${option}</option>`).join('');
+      select.value = options.includes(previousValue) ? previousValue : options[0];
+    }
+
+    function toggleMaterialFieldSets(applicationType) {
+      const filamentFields = document.getElementById('filamentFields');
+      const laserFields = document.getElementById('laserFields');
+      if (!filamentFields || !laserFields) return;
+      const isLaser = applicationType === 'Laser Cutter Material';
+      filamentFields.classList.toggle('hidden', isLaser);
+      laserFields.classList.toggle('hidden', !isLaser);
+    }
+
+    function switchAuthMode(mode) {
+      document.getElementById('showLoginBtn').classList.toggle('active', mode === 'login');
+      document.getElementById('showSignupBtn').classList.toggle('active', mode === 'signup');
+      document.getElementById('loginForm').classList.toggle('hidden', mode !== 'login');
+      document.getElementById('signupForm').classList.toggle('hidden', mode !== 'signup');
+      document.getElementById('authTitle').textContent = mode === 'login' ? 'Welcome back' : 'Create your account';
+      document.getElementById('authDescription').textContent = mode === 'login' ? 'Sign in to manage your workshop materials.' : 'Create an account to keep your materials and assignments private.';
+    }
+
+    function getStoredUsers() {
+      return JSON.parse(localStorage.getItem('trackerUsers') || '[]');
+    }
+
+    function saveUser(user) {
+      const users = getStoredUsers();
+      users.push(user);
+      localStorage.setItem('trackerUsers', JSON.stringify(users));
+    }
+
+    async function handleSignup(event) {
+      event.preventDefault();
+      const name = document.getElementById('signupName').value.trim();
+      const email = document.getElementById('signupEmail').value.trim();
+      const password = document.getElementById('signupPassword').value;
+      const users = getStoredUsers();
+      if (users.some(user => user.email.toLowerCase() === email.toLowerCase())) {
+        toastMessage('An account with that email already exists.');
+        return;
+      }
+      try {
+        const response = await fetch('/api/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, username: email, password, role: 'Operator' })
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.error || 'Unable to create account');
+        const user = { id: result.user?.id || Date.now(), name: result.user?.name || name, email, password, role: result.user?.role || 'Operator' };
+        saveUser(user);
+        localStorage.setItem('trackerActiveUser', JSON.stringify(user));
+        applySignedInUser(user);
+        toastMessage(`Account created for ${name}`);
+      } catch (error) {
+        toastMessage(error.message || 'Unable to create account');
+      }
+    }
+
+    function logoutUser() {
+      localStorage.removeItem('trackerActiveUser');
+      state.currentUser = null;
+      state.role = 'Operator';
+      document.getElementById('authScreen').classList.remove('hidden');
+      document.getElementById('appShell').classList.add('hidden');
+      document.getElementById('userName').textContent = 'Guest';
+      document.getElementById('userRole').textContent = 'Operator';
+      document.getElementById('userAvatar').textContent = 'U';
+      switchAuthMode('login');
+    }
+
+    async function handleLogin(event) {
+      event.preventDefault();
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      try {
+        const response = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, username: email, password })
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.error || 'Invalid login details.');
+        const user = { id: result.user?.id || Date.now(), name: result.user?.name || email, email, password, role: result.user?.role || 'Operator' };
+        saveUser(user);
+        localStorage.setItem('trackerActiveUser', JSON.stringify(user));
+        applySignedInUser(user);
+        toastMessage(`Signed in as ${user.name}`);
+      } catch (error) {
+        toastMessage(error.message || 'Invalid login details.');
+      }
+    }
+
+    function restoreSession() {
+      const saved = localStorage.getItem('trackerActiveUser');
+      if (!saved) {
+        document.getElementById('authScreen').classList.remove('hidden');
+        document.getElementById('appShell').classList.add('hidden');
+        return;
+      }
+      applySignedInUser(JSON.parse(saved));
+    }
+
+    function applySignedInUser(user) {
+      document.getElementById('authScreen').classList.add('hidden');
+      document.getElementById('appShell').classList.remove('hidden');
+      document.getElementById('userName').textContent = user.name || 'Workshop User';
+      document.getElementById('userRole').textContent = user.role || 'Operator';
+      document.getElementById('userAvatar').textContent = (user.name || 'U').charAt(0).toUpperCase();
+      state.currentUser = user;
+      state.role = user.role || 'Operator';
+      applyRolePermissions();
+      loadMaterials();
+    }
+
+    function normalizeMaterial(raw) {
+      const name = raw.MaterialName || raw.material_name || raw.Name || raw.name || 'Unnamed Material';
+      const id = raw.MaterialID || raw.material_id || raw.id || Math.floor(1000 + Math.random() * 10000);
+      const type = raw.MaterialType || raw.material_type || raw.Type || raw.type || 'Custom';
+      const quantity = Number(raw.Quantity || raw.current_stock || raw.CurrentStock || raw.quantity || 0);
+      const minimumStock = Number(raw.MinimumStock || raw.minimum_stock || raw.minimum || 10);
+      const currentStock = Number(raw.CurrentStock || raw.current_stock || quantity);
+      const cost = Number(raw.Cost || raw.cost || 0);
+      const status = raw.Status || raw.status || getStatusFromQuantity(currentStock, minimumStock);
+      const applicationType = raw.applicationType || (raw.typeGroup === 'Laser Cutting' ? 'Laser Cutter Material' : 'Filament');
+      return {
+        id,
+        name,
+        type,
+        manufacturer: raw.Manufacturer || raw.manufacturer || raw.Supplier || 'Unknown',
+        colour: raw.Colour || raw.color || 'N/A',
+        diameter: raw.Diameter || raw.diameter || '—',
+        thickness: raw.Thickness || raw.thickness || '—',
+        sheetSize: raw.SheetSize || raw.sheet_size || '—',
+        length: raw.Length || raw.length || '—',
+        quantity,
+        unit: raw.Unit || raw.unit || 'kg',
+        currentStock,
+        ownerEmail: raw.ownerEmail || raw.OwnerEmail || '',
+        minimumStock,
+        location: raw.Location || raw.location || 'Main Storage',
+        assignedMachine: raw.AssignedMachine || raw.assigned_machine || '—',
+        barcode: raw.Barcode || raw.barcode || `${String(id).padStart(4, '0')}`,
+        qrCode: raw.QRCode || raw.qr_code || `${String(id).padStart(4, '0')}`,
+        supplier: raw.Supplier || raw.supplier || 'In-House',
+        purchaseDate: raw.PurchaseDate || raw.purchase_date || new Date().toISOString().slice(0, 10),
+        cost,
+        status,
+        applicationType,
+        typeGroup: applicationType === 'Laser Cutter Material' ? 'Laser Cutting' : (type.includes('PLA') || type.includes('PETG') || type.includes('ABS') || type.includes('ASA') || type.includes('TPU') || type.includes('Nylon') || type.includes('Resin') || type.includes('Carbon') || type.includes('Wood') || type.includes('Metal') ? '3D Printing' : (type.includes('Acrylic') || type.includes('MDF') || type.includes('Plywood') || type.includes('Foam') || type.includes('Card') || type.includes('Leather') || type.includes('Paper') || type.includes('Fabric') || type.includes('Polycarbonate') || type.includes('Delrin') || type.includes('Rubber') || type.includes('Cork') ? 'Laser Cutting' : 'Custom'))
+      };
+    }
+
+    function getStatusFromQuantity(currentStock, minimumStock) {
+      if (currentStock <= 0) return 'Out of Stock';
+      if (currentStock <= minimumStock) return 'Low Stock';
+      return 'In Stock';
+    }
+
+    function getMaterialArtwork(item) {
+      const label = (item.type || item.applicationType || 'MAT').toString().slice(0, 2).toUpperCase();
+      const colors = item.applicationType === 'Laser Cutter Material' ? ['#0ea5e9', '#7c3aed'] : ['#22c55e', '#2563eb'];
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="600" height="360" viewBox="0 0 600 360">
+          <defs>
+            <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="${colors[0]}" />
+              <stop offset="100%" stop-color="${colors[1]}" />
+            </linearGradient>
+          </defs>
+          <rect width="600" height="360" rx="28" fill="url(#g)" />
+          <rect x="90" y="100" width="420" height="150" rx="24" fill="rgba(255,255,255,0.24)" stroke="rgba(255,255,255,0.4)" stroke-width="3" />
+          <circle cx="180" cy="180" r="58" fill="rgba(255,255,255,0.18)" />
+          <circle cx="420" cy="180" r="72" fill="rgba(255,255,255,0.14)" />
+          <text x="300" y="205" text-anchor="middle" fill="white" font-size="52" font-family="Segoe UI, Arial" font-weight="700">${label}</text>
+        </svg>`;
+      return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+    }
+
+    function renderMaterials() {
+      const filtered = state.materials.filter(item => {
+        const matchUser = !state.currentUser || !state.currentUser.email || item.ownerEmail === state.currentUser.email || !item.ownerEmail;
+        const matchQuery = !state.searchQuery || `${item.name} ${item.type} ${item.manufacturer} ${item.location}`.toLowerCase().includes(state.searchQuery);
+        const matchType = state.typeFilter === 'all' || item.typeGroup === state.typeFilter || item.type === state.typeFilter;
+        const matchStatus = state.statusFilter === 'all' || item.status === state.statusFilter;
+        return matchUser && matchQuery && matchType && matchStatus;
+      });
+
+      const sorted = [...filtered].sort((a, b) => {
+        const dir = state.sortDirection === 'asc' ? 1 : -1;
+        const keyA = a[state.sortKey] ?? '';
+        const keyB = b[state.sortKey] ?? '';
+        if (typeof keyA === 'number' && typeof keyB === 'number') return (keyA - keyB) * dir;
+        return String(keyA).localeCompare(String(keyB)) * dir;
+      });
+
+      const totalPages = Math.max(1, Math.ceil(sorted.length / state.pageSize));
+      if (state.currentPage > totalPages) state.currentPage = totalPages;
+      const start = (state.currentPage - 1) * state.pageSize;
+      const pageItems = sorted.slice(start, start + state.pageSize);
+
+      els.materialsSummary.textContent = `${sorted.length} material${sorted.length === 1 ? '' : 's'} shown`;
+
+      if (!pageItems.length) {
+        els.materialsGrid.innerHTML = '<div class="empty-state">No materials match the current filters.</div>';
+        els.pagination.innerHTML = '';
+        return;
+      }
+
+      els.materialsGrid.innerHTML = pageItems.map(item => `
+        <article class="material-card">
+          <div class="material-image" style="background-image: url('${getMaterialArtwork(item)}');">
+            <div class="image-label">${item.applicationType === 'Laser Cutter Material' ? 'Laser' : 'Filament'}</div>
+          </div>
+          <div class="material-meta">
+            <span class="material-chip">${item.type}</span>
+            <span class="material-chip">${item.applicationType === 'Laser Cutter Material' ? 'Laser cutting' : '3D printing'}</span>
+          </div>
+          <h4>${item.name}</h4>
+          <p>${item.manufacturer || 'In-house stock'}</p>
+          <div class="material-stats">
+            <div class="material-stat"><strong>${item.quantity}</strong><span>Qty</span></div>
+            <div class="material-stat"><strong>${item.location || 'Main Storage'}</strong><span>Location</span></div>
+          </div>
+          <div class="material-meta">
+            <span class="status-badge ${item.status === 'In Stock' ? 'status-in' : item.status === 'Low Stock' ? 'status-low' : 'status-out'}">${item.status}</span>
+          </div>
+          <div class="material-actions">
+            <button class="btn-secondary" onclick="viewMaterial(${item.id})">View</button>
+            <button class="btn-secondary" onclick="openAssignModal(${item.id})">Assign</button>
+            <button class="btn-secondary" onclick="generateQR(${item.id})">QR</button>
+            <button class="btn-secondary" onclick="generateBarcode(${item.id})">Barcode</button>
+            <button class="btn-danger" onclick="deleteMaterial(${item.id})">Delete</button>
+          </div>
+        </article>`).join('');
+
+      els.pagination.innerHTML = '';
+      for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement('button');
+        btn.className = `page-btn ${i === state.currentPage ? 'active' : ''}`;
+        btn.textContent = i;
+        btn.addEventListener('click', () => { state.currentPage = i; renderMaterials(); });
+        els.pagination.appendChild(btn);
+      }
+    }
+
+    function loadMachines() {
+      renderMachines();
+    }
+
+    function loadProjects() {
+      renderProjects();
+    }
+
+    function loadDashboard() {
+      renderDashboardCards();
+      renderCharts();
+      renderAlertList();
+    }
+
+    function refreshDashboard() {
+      loadDashboard();
+    }
+
+    function refreshAll() {
+      loadMaterials();
+      loadMachines();
+      loadProjects();
+      refreshDashboard();
+      showPage(state.activePage);
+      toastMessage('Dashboard refreshed');
+    }
+
+    function searchMaterials() {
+      renderMaterials();
+    }
+
+    function renderDashboardCards() {
+      const lowStockCount = state.materials.filter(item => item.status === 'Low Stock' || item.status === 'Out of Stock').length;
+      const totalValue = state.materials.reduce((sum, item) => sum + (Number(item.quantity || item.currentStock || 0) * Number(item.cost || 0)), 0);
+      const onlineMachines = state.machines.filter(item => item.status === 'Online').length;
+      const assignedMaterials = state.materials.filter(item => item.assignedMachine && item.assignedMachine !== '—').length;
+      const stats = [
+        { label: 'Total Materials', value: state.materials.length, trend: '+4.8%' },
+        { label: 'Total Stock Value', value: `$${totalValue.toLocaleString()}`, trend: '+3.1%' },
+        { label: 'Low Stock', value: lowStockCount, trend: 'Needs review' },
+        { label: 'Machines Online', value: onlineMachines, trend: 'Stable' },
+        { label: 'Materials Assigned', value: assignedMaterials, trend: 'Active' },
+        { label: 'Projects', value: state.projects.length, trend: '2 active' },
+        { label: 'Purchase Orders', value: 0, trend: 'No pending orders' },
+        { label: 'Notifications', value: state.notifications.length, trend: 'Live' }
+      ];
+      const grid = document.getElementById('statsGrid');
+      grid.innerHTML = stats.map(stat => `
+        <div class="stat-card">
+          <div class="stat-label">${stat.label}</div>
+          <div class="stat-value">${stat.value}</div>
+          <div class="stat-trend">${stat.trend}</div>
+        </div>`).join('');
+    }
+
+    function renderCharts() {
+      const categories = state.materials.reduce((acc, item) => {
+        const key = item.typeGroup || 'Custom';
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {});
+      const stockBreakdown = {
+        'In Stock': state.materials.filter(i => i.status === 'In Stock').length,
+        'Low Stock': state.materials.filter(i => i.status === 'Low Stock').length,
+        'Out of Stock': state.materials.filter(i => i.status === 'Out of Stock').length
+      };
+      const usageLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+      const usageValues = [24, 18, 32, 28, 36, 40];
+      const trendValues = [20, 24, 22, 29, 31, 37];
+      const machineBreakdown = {
+        '3D Printers': state.machines.filter(m => m.type === '3D Printer').length,
+        'Laser Cutters': state.machines.filter(m => m.type === 'Laser Cutter').length
+      };
+
+      renderChart('categoriesChart', 'doughnut', Object.keys(categories), Object.values(categories), ['#2563eb', '#7c3aed', '#14b8a6', '#f59e0b']);
+      renderChart('stockChart', 'bar', Object.keys(stockBreakdown), Object.values(stockBreakdown), ['#16a34a', '#f59e0b', '#dc2626']);
+      renderChart('usageChart', 'line', usageLabels, usageValues, ['#2563eb']);
+      renderChart('machineChart', 'pie', Object.keys(machineBreakdown), Object.values(machineBreakdown), ['#3b82f6', '#8b5cf6']);
+      renderChart('trendChart', 'line', usageLabels, trendValues, ['#14b8a6']);
+    }
+
+    function renderChart(canvasId, type, labels, values, colors) {
+      const ctx = document.getElementById(canvasId);
+      if (!ctx) return;
+      if (state.charts[canvasId]) state.charts[canvasId].destroy();
+      state.charts[canvasId] = new Chart(ctx, {
+        type,
+        data: {
+          labels,
+          datasets: [{
+            label: canvasId.includes('usage') || canvasId.includes('trend') ? 'Units' : 'Count',
+            data: values,
+            borderColor: colors[0],
+            backgroundColor: colors,
+            fill: false,
+            tension: 0.35
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: getComputedStyle(document.body).getPropertyValue('--text').trim() } } },
+          scales: type === 'bar' || type === 'line' ? { y: { beginAtZero: true, ticks: { color: getComputedStyle(document.body).getPropertyValue('--muted').trim() } }, x: { ticks: { color: getComputedStyle(document.body).getPropertyValue('--muted').trim() } } } : {}
+        }
+      });
+    }
+
+    function renderAlertList() {
+      const list = document.getElementById('alertList');
+      if (!list) return;
+      if (!state.notifications.length) {
+        list.innerHTML = '<div class="empty-state">No active alerts.</div>';
+        return;
+      }
+      list.innerHTML = state.notifications.map(item => `
+        <div class="list-item">
+          <div>
+            <strong>${item.title}</strong>
+            <div style="color: var(--muted); font-size: 13px;">${item.detail}</div>
+          </div>
+          <span class="status-badge ${item.severity === 'danger' ? 'status-out' : item.severity === 'warning' ? 'status-low' : 'status-in'}">${item.type}</span>
+        </div>`).join('');
+    }
+
+    async function loadMachinesFromServer() {
+      try {
+        const response = await fetch('/api/machines');
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Unable to load machines');
+        state.machines = Array.isArray(data) ? data.map(machine => ({
+          id: machine.MachineID,
+          type: machine.MachineType || '3D Printer',
+          manufacturer: machine.Manufacturer || '',
+          model: machine.Model || '',
+          serial: machine.SerialNumber || '',
+          status: machine.Status || 'Online',
+          location: '',
+          currentProject: ''
+        })) : [];
+      } catch (error) {
+        state.machines = [];
+      }
+      renderMachines();
+    }
+
+    async function loadProjectsFromServer() {
+      try {
+        const response = await fetch('/api/projects');
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Unable to load projects');
+        state.projects = Array.isArray(data) ? data.map(project => ({
+          id: project.ProjectID,
+          name: project.ProjectName || 'Unnamed Project',
+          owner: project.Description || '',
+          progress: 0,
+          materials: []
+        })) : [];
+      } catch (error) {
+        state.projects = [];
+      }
+      renderProjects();
+    }
+
+    async function loadSuppliersFromServer() {
+      try {
+        const response = await fetch('/api/suppliers');
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Unable to load suppliers');
+        state.suppliers = Array.isArray(data) ? data.map(supplier => ({
+          id: supplier.SupplierID,
+          name: supplier.SupplierName || 'Unnamed Supplier',
+          contact: supplier.ContactName || '',
+          leadTime: supplier.Phone || '',
+          status: 'Active'
+        })) : [];
+      } catch (error) {
+        state.suppliers = [];
+      }
+      renderSuppliers();
+    }
+
+    async function loadNotificationsFromServer() {
+      try {
+        const response = await fetch('/api/notifications');
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Unable to load notifications');
+        state.notifications = Array.isArray(data) ? data.map(item => ({
+          id: item.NotificationID,
+          title: item.Message || 'Alert',
+          detail: item.Message || '',
+          type: 'Alert',
+          severity: 'info'
+        })) : [];
+      } catch (error) {
+        state.notifications = [];
+      }
+      renderNotifications();
+    }
+
+    async function loadInventoryFromServer() {
+      try {
+        const response = await fetch('/api/inventory');
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Unable to load inventory');
+        state.inventory = Array.isArray(data) ? data.map(item => ({
+          id: item.TransactionID,
+          date: item.TransactionDate ? new Date(item.TransactionDate).toISOString().slice(0, 10) : '',
+          material: item.MaterialID || '',
+          type: item.TransactionType || 'Stock In',
+          quantity: item.Quantity || 0,
+          reference: '',
+          notes: item.Notes || ''
+        })) : [];
+      } catch (error) {
+        state.inventory = [];
+      }
+      renderInventory();
+    }
+
+    async function loadCategoriesFromServer() {
+      try {
+        const response = await fetch('/api/categories');
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Unable to load categories');
+        state.categories = Array.isArray(data) ? data.map(item => ({
+          id: item.CategoryID,
+          name: item.CategoryName || 'Unnamed Category',
+          description: ''
+        })) : [];
+      } catch (error) {
+        state.categories = [];
+      }
+      renderCategories();
+    }
+
+    async function loadLocationsFromServer() {
+      try {
+        const response = await fetch('/api/locations');
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Unable to load locations');
+        state.locations = Array.isArray(data) ? data.map(item => ({
+          id: item.LocationID,
+          name: `${item.Building || ''} ${item.Room || ''} ${item.Shelf || ''} ${item.Bin || ''}`.trim() || 'Unnamed Location',
+          capacity: '',
+          notes: ''
+        })) : [];
+      } catch (error) {
+        state.locations = [];
+      }
+      renderStorage();
+    }
+
+    function renderMachines() {
+      const printers = state.machines.filter(m => m.type === '3D Printer');
+      const lasers = state.machines.filter(m => m.type === 'Laser Cutter');
+      const machinesGrid = document.getElementById('machinesGrid');
+      const laserGrid = document.getElementById('laserGrid');
+      if (!machinesGrid || !laserGrid) return;
+
+      if (!printers.length && !lasers.length) {
+        machinesGrid.innerHTML = '<div class="panel"><h3>No machine records</h3><p>No machine data has been added to SQLite yet.</p></div>';
+        laserGrid.innerHTML = '<div class="panel"><h3>No laser records</h3><p>No laser cutter data has been added to SQLite yet.</p></div>';
+        return;
+      }
+
+      machinesGrid.innerHTML = printers.map(machine => toMachineCard(machine)).join('');
+      laserGrid.innerHTML = lasers.map(machine => toMachineCard(machine)).join('');
+      const assignmentMaterial = state.materials.find(item => item.assignedMachine && item.assignedMachine !== '—');
+      if (assignmentMaterial) {
+        machinesGrid.insertAdjacentHTML('beforeend', `<div class="panel"><h3>Loaded Material</h3><p>${assignmentMaterial.name} is assigned to ${assignmentMaterial.assignedMachine}</p></div>`);
+      }
+    }
+
+    function toMachineCard(machine) {
+      return `
+        <div class="machine-card">
+          <strong>${machine.manufacturer} ${machine.model}</strong>
+          <div>${machine.type}</div>
+          <div class="badge-row">
+            <span class="status-badge ${machine.status === 'Online' ? 'status-in' : 'status-low'}">${machine.status}</span>
+            <span class="status-badge status-in">${machine.currentProject || machine.currentMaterial || 'Ready'}</span>
+          </div>
+          <div style="margin-top: 10px; color: var(--muted); font-size: 13px;">
+            <div>Serial: ${machine.serial || machine.serial}</div>
+            <div>${machine.nozzle || machine.bedSize || ''}</div>
+            <div>${machine.filamentLoaded || machine.currentMaterial || ''}</div>
+          </div>
+        </div>`;
+    }
+
+    function renderProjects() {
+      const projectsGrid = document.getElementById('projectsGrid');
+      if (!projectsGrid) return;
+      if (!state.projects.length) {
+        projectsGrid.innerHTML = '<div class="panel"><h3>No project records</h3><p>No project data has been added to SQLite yet.</p></div>';
+        return;
+      }
+      projectsGrid.innerHTML = state.projects.map(project => `
+        <div class="panel">
+          <h3>${project.name}</h3>
+          <p><strong>ID:</strong> ${project.id}</p>
+          <p><strong>Owner:</strong> ${project.owner}</p>
+          <p><strong>Progress:</strong> ${project.progress}%</p>
+          <div class="badge-row">${project.materials.map(mat => `<span class="status-badge status-in">${mat}</span>`).join('')}</div>
+        </div>`).join('');
+    }
+
+    function renderAssignments() {
+      const body = document.getElementById('assignmentsTableBody');
+      if (!body) return;
+      if (!state.assignments.length) {
+        body.innerHTML = '<tr><td colspan="6"><div class="empty-state">No assignment data has been added to SQLite yet.</div></td></tr>';
+        return;
+      }
+      body.innerHTML = state.assignments.map(item => `
+        <tr>
+          <td>${item.machine}</td>
+          <td>${item.material}</td>
+          <td>${item.assignedBy}</td>
+          <td>${item.assignedDate}</td>
+          <td>${item.usageRemaining}%</td>
+          <td>${item.estimatedTimeRemaining}</td>
+        </tr>`).join('');
+    }
+
+    function renderInventory() {
+      const body = document.getElementById('inventoryTableBody');
+      if (!body) return;
+      if (!state.inventory.length) {
+        body.innerHTML = '<tr><td colspan="6"><div class="empty-state">No inventory transactions have been added to SQLite yet.</div></td></tr>';
+        return;
+      }
+      body.innerHTML = state.inventory.map(item => `
+        <tr>
+          <td>${item.date}</td>
+          <td>${item.material}</td>
+          <td>${item.type}</td>
+          <td>${item.quantity}</td>
+          <td>${item.reference}</td>
+          <td>${item.notes}</td>
+        </tr>`).join('');
+    }
+
+    function renderNotifications() {
+      const container = document.getElementById('notificationList');
+      if (!container) return;
+      if (!state.notifications.length) {
+        container.innerHTML = '<div class="empty-state">No notification records have been added to SQLite yet.</div>';
+        return;
+      }
+      container.innerHTML = state.notifications.map(item => `
+        <div class="list-item">
+          <div>
+            <strong>${item.title}</strong>
+            <div style="color: var(--muted); font-size: 13px;">${item.detail}</div>
+          </div>
+          <span class="status-badge ${item.severity === 'danger' ? 'status-out' : item.severity === 'warning' ? 'status-low' : 'status-in'}">${item.type}</span>
+        </div>`).join('');
+    }
+
+    function renderUsers() {
+      const buttons = document.getElementById('roleButtons');
+      const summary = document.getElementById('permissionSummary');
+      if (!buttons || !summary) return;
+      buttons.innerHTML = demoUsers.map(user => `
+        <button class="btn-secondary" style="margin-bottom: 8px; width: 100%; text-align: left;" onclick="setRole('${user.role}')">${user.role}</button>`).join('');
+      const current = demoUsers.find(item => item.role === state.role) || demoUsers[0];
+      summary.innerHTML = current.permissions.map(permission => `<div class="list-item">${permission}</div>`).join('');
+      document.getElementById('userRole').textContent = state.role;
+      document.getElementById('userAvatar').textContent = state.role.charAt(0);
+      document.getElementById('userName').textContent = 'Current User';
+    }
+
+    function setRole(role) {
+      state.role = role;
+      renderUsers();
+      toastMessage(`Signed in as ${role}`);
+      applyRolePermissions();
+    }
+
+    function applyRolePermissions() {
+      const isReadOnly = state.role === 'Viewer';
+      document.querySelectorAll('.btn-danger, #addMaterialBtn, #assignMaterialBtn').forEach(btn => {
+        btn.disabled = isReadOnly;
+      });
+      const actionButtons = document.querySelectorAll('button[data-role-aware]');
+      actionButtons.forEach(btn => { btn.disabled = isReadOnly; });
+    }
+
+    function renderReports() {
+      const list = document.getElementById('reportList');
+      if (!list) return;
+      const reports = ['Inventory Report', 'Machine Usage Report', 'Material Usage Report', 'Supplier Report', 'Low Stock Report'];
+      list.innerHTML = reports.map(report => `
+        <button class="btn-secondary" style="margin-bottom: 8px; width: 100%; text-align: left;" onclick="state.currentReport='${report}'; toastMessage('${report} selected')">${report}</button>`).join('');
+    }
+
+    function renderCategories() {
+      const container = document.getElementById('categorySummary');
+      const insights = document.getElementById('categoryInsights');
+      if (!container || !insights) return;
+      const categories = (state.categories && state.categories.length ? state.categories : []).map(item => ({ id: item.id, name: item.name || item.CategoryName || '', description: item.description || '' }));
+      const groups = state.materials.reduce((acc, item) => {
+        const key = item.typeGroup || 'Custom';
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {});
+      if (!categories.length && !Object.keys(groups).length) {
+        container.innerHTML = '<div class="empty-state">No category data has been added to SQLite yet.</div>';
+        insights.innerHTML = '<div class="empty-state">No category insights available.</div>';
+        return;
+      }
+      const categoryItems = categories.length ? categories.map(category => `<div class="list-item"><strong>${category.name}</strong><span>${groupCount(groups, category.name)} materials</span></div>`).join('') : Object.entries(groups).map(([name, count]) => `<div class="list-item"><strong>${name}</strong><span>${count} materials</span></div>`).join('');
+      container.innerHTML = categoryItems;
+      insights.innerHTML = (categories.length ? categories.slice(0, 3).map(category => `<div class="list-item"><strong>${category.name}</strong><span>${groupCount(groups, category.name)} active</span></div>`).join('') : Object.entries(groups).slice(0, 3).map(([name, count]) => `<div class="list-item"><strong>${name}</strong><span>${count} active</span></div>`).join(''));
+    }
+
+    function groupCount(groups, name) {
+      return groups[name] || 0;
+    }
+
+    function renderSuppliers() {
+      const container = document.getElementById('supplierList');
+      const orders = document.getElementById('supplierOrders');
+      if (!container || !orders) return;
+      const suppliers = (state.suppliers && state.suppliers.length ? state.suppliers : [...new Set(state.materials.map(item => item.supplier).filter(Boolean))].slice(0, 6)).map(item => ({
+        id: item.id,
+        name: item.name || item.SupplierName || item.supplier || '',
+        contact: item.contact || item.ContactName || '',
+        leadTime: item.leadTime || item.Phone || '',
+        status: item.status || 'Active'
+      }));
+      if (!suppliers.length) {
+        container.innerHTML = '<div class="empty-state">No supplier records have been added to SQLite yet.</div>';
+        orders.innerHTML = '<div class="empty-state">No purchase orders have been added yet.</div>';
+        return;
+      }
+      container.innerHTML = suppliers.map(supplier => `<div class="list-item"><strong>${supplier.name}</strong><span>${supplier.status}</span></div>`).join('');
+      orders.innerHTML = '<div class="empty-state">No purchase orders have been added yet.</div>';
+    }
+
+    async function handleMachineCreate(event) {
+      event.preventDefault();
+      const form = event.target;
+      const payload = {
+        type: form.elements.type.value,
+        manufacturer: form.elements.manufacturer.value,
+        model: form.elements.model.value,
+        serial: form.elements.serial.value,
+        status: form.elements.status.value,
+        location: form.elements.location.value,
+        currentProject: form.elements.currentProject.value,
+        notes: `Location: ${form.elements.location.value || ""}; Project: ${form.elements.currentProject.value || ""}`.trim()
+      };
+      try {
+        const response = await fetch('/api/machines', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.error || 'Unable to save machine');
+        closeModals();
+        form.reset();
+        await loadMachinesFromServer();
+        refreshDashboard();
+        toastMessage(`Added ${payload.manufacturer} ${payload.model}`);
+      } catch (error) {
+        toastMessage(error.message || 'Unable to save machine');
+      }
+    }
+
+    async function handleSupplierCreate(event) {
+      event.preventDefault();
+      const form = event.target;
+      const payload = {
+        name: form.elements.name.value,
+        contact: form.elements.contact.value,
+        phone: form.elements.leadTime.value,
+        email: '',
+        website: '',
+        address: ''
+      };
+      try {
+        const response = await fetch('/api/suppliers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.error || 'Unable to save supplier');
+        closeModals();
+        form.reset();
+        await loadSuppliersFromServer();
+        refreshDashboard();
+        toastMessage(`Added ${payload.name}`);
+      } catch (error) {
+        toastMessage(error.message || 'Unable to save supplier');
+      }
+    }
+
+    async function handleProjectCreate(event) {
+      event.preventDefault();
+      const form = event.target;
+      const payload = {
+        name: form.elements.name.value,
+        owner: form.elements.owner.value,
+        progress: Number(form.elements.progress.value || 0),
+        materials: (form.elements.materials.value || '').split(',').map(entry => entry.trim()).filter(Boolean),
+        description: `${form.elements.owner.value || ''}`.trim(),
+        status: 'Active'
+      };
+      try {
+        const response = await fetch('/api/projects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.error || 'Unable to save project');
+        closeModals();
+        form.reset();
+        await loadProjectsFromServer();
+        refreshDashboard();
+        toastMessage(`Added ${payload.name}`);
+      } catch (error) {
+        toastMessage(error.message || 'Unable to save project');
+      }
+    }
+
+    async function handleNotificationCreate(event) {
+      event.preventDefault();
+      const form = event.target;
+      const payload = {
+        title: form.elements.title.value,
+        detail: form.elements.detail.value,
+        type: form.elements.type.value,
+        severity: form.elements.severity.value,
+        message: `${form.elements.title.value}: ${form.elements.detail.value}`.trim()
+      };
+      try {
+        const response = await fetch('/api/notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.error || 'Unable to save alert');
+        closeModals();
+        form.reset();
+        await loadNotificationsFromServer();
+        refreshDashboard();
+        toastMessage(`Added ${payload.title}`);
+      } catch (error) {
+        toastMessage(error.message || 'Unable to save alert');
+      }
+    }
+
+    async function handleInventoryCreate(event) {
+      event.preventDefault();
+      const form = event.target;
+      const payload = {
+        material: form.elements.material.value,
+        type: form.elements.type.value,
+        quantity: Number(form.elements.quantity.value || 0),
+        reference: form.elements.reference.value,
+        notes: form.elements.notes.value
+      };
+      try {
+        const response = await fetch('/api/inventory', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.error || 'Unable to save transaction');
+        closeModals();
+        form.reset();
+        await loadInventoryFromServer();
+        refreshDashboard();
+        toastMessage(`Added ${payload.material}`);
+      } catch (error) {
+        toastMessage(error.message || 'Unable to save transaction');
+      }
+    }
+
+    async function handleCategoryCreate(event) {
+      event.preventDefault();
+      const form = event.target;
+      const payload = {
+        name: form.elements.name.value,
+        description: form.elements.description.value
+      };
+      try {
+        const response = await fetch('/api/categories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.error || 'Unable to save category');
+        closeModals();
+        form.reset();
+        await loadCategoriesFromServer();
+        refreshDashboard();
+        toastMessage(`Added ${payload.name}`);
+      } catch (error) {
+        toastMessage(error.message || 'Unable to save category');
+      }
+    }
+
+    async function handleStorageCreate(event) {
+      event.preventDefault();
+      const form = event.target;
+      const payload = {
+        name: form.elements.name.value,
+        building: form.elements.name.value,
+        room: '',
+        shelf: '',
+        bin: form.elements.capacity.value || ''
+      };
+      try {
+        const response = await fetch('/api/locations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.error || 'Unable to save location');
+        closeModals();
+        form.reset();
+        await loadLocationsFromServer();
+        refreshDashboard();
+        toastMessage(`Added ${payload.name}`);
+      } catch (error) {
+        toastMessage(error.message || 'Unable to save location');
+      }
+    }
+
+    function renderStorage() {
+      const list = document.getElementById('storageList');
+      const capacity = document.getElementById('storageCapacity');
+      if (!list || !capacity) return;
+      const locations = (state.locations && state.locations.length ? state.locations : [...new Set(state.materials.map(item => item.location).filter(Boolean))].map(name => ({ name, capacity: '', notes: '' }))); 
+      if (!locations.length) {
+        list.innerHTML = '<div class="empty-state">No storage locations have been added to SQLite yet.</div>';
+        capacity.innerHTML = '<div class="empty-state">No storage capacity data yet.</div>';
+        return;
+      }
+      list.innerHTML = locations.map(location => `<div class="list-item"><strong>${location.name}</strong><span>${state.materials.filter(item => item.location === location.name).length} items</span></div>`).join('');
+      capacity.innerHTML = '<div class="empty-state">No storage capacity data yet.</div>';
+    }
+
+    function renderSettings() {
+      const status = document.getElementById('databaseStatus');
+      if (!status) return;
+      status.innerHTML = [
+        `<div class="list-item"><strong>API Status</strong><span>Connected</span></div>`,
+        `<div class="list-item"><strong>Database</strong><span>Materialtracker.db</span></div>`,
+        `<div class="list-item"><strong>Refresh</strong><span>${state.autoRefresh ? 'Enabled' : 'Disabled'}</span></div>`
+      ].join('');
+      document.getElementById('accentPicker').value = state.accent;
+      document.getElementById('darkModeToggle').checked = state.darkMode;
+      document.getElementById('autoRefreshToggle').checked = state.autoRefresh;
+      document.getElementById('desktopNotificationsToggle').checked = state.notificationsEnabled;
+    }
+
+    function viewMaterial(id) {
+      const material = state.materials.find(item => item.id === Number(id));
+      if (!material) return;
+      state.selectedMaterial = material;
+      openMaterialModal('view', material);
+    }
+
+    function openMaterialModal(mode = 'add', material = null) {
+      const backdrop = document.getElementById('materialModalBackdrop');
+      const form = document.getElementById('materialForm');
+      const title = document.getElementById('modalTitle');
+      form.reset();
+      state.editingMaterialId = material ? material.id : null;
+      title.textContent = mode === 'view' ? 'Material Details' : (material ? 'Edit Material' : 'Add Material');
+      const applicationTypeSelect = form.elements.applicationType;
+      const materialTypeSelect = form.elements.type;
+      if (applicationTypeSelect && materialTypeSelect) {
+        applicationTypeSelect.value = material?.applicationType || 'Filament';
+        updateMaterialTypeOptions(applicationTypeSelect.value);
+      }
+      if (material) {
+        Object.entries(material).forEach(([key, value]) => {
+          const field = form.elements.namedItem(key);
+          if (field) field.value = value;
+        });
+        form.elements.name.value = material.name;
+        form.elements.type.value = material.type;
+        if (form.elements.applicationType) form.elements.applicationType.value = material.applicationType || 'Filament';
+        form.elements.manufacturer.value = material.manufacturer;
+        form.elements.colour.value = material.colour;
+        form.elements.filamentDiameter.value = material.diameter || material.filamentDiameter || '';
+        form.elements.filamentWeight.value = material.weight || material.filamentWeight || '';
+        form.elements.thickness.value = material.thickness || '';
+        form.elements.sheetSize.value = material.sheetSize || '';
+        form.elements.length.value = material.length || '';
+        form.elements.width.value = material.width || '';
+        form.elements.quantity.value = material.quantity;
+        form.elements.unit.value = material.unit;
+        form.elements.currentStock.value = material.currentStock;
+        form.elements.minimumStock.value = material.minimumStock;
+        form.elements.location.value = material.location;
+        form.elements.assignedMachine.value = material.assignedMachine;
+        form.elements.supplier.value = material.supplier;
+        form.elements.cost.value = material.cost;
+        form.elements.status.value = material.status;
+      }
+      backdrop.classList.add('open');
+    }
+
+    function openModal(type) {
+      closeModals();
+      const modalMap = {
+        machine: 'machineModalBackdrop',
+        supplier: 'supplierModalBackdrop',
+        project: 'projectModalBackdrop',
+        notification: 'notificationModalBackdrop',
+        inventory: 'inventoryModalBackdrop',
+        category: 'categoryModalBackdrop',
+        storage: 'storageModalBackdrop'
+      };
+      const target = document.getElementById(modalMap[type]);
+      if (target) target.classList.add('open');
+    }
+
+    function closeModals() {
+      document.getElementById('materialModalBackdrop').classList.remove('open');
+      document.getElementById('assignModalBackdrop').classList.remove('open');
+      document.getElementById('machineModalBackdrop').classList.remove('open');
+      document.getElementById('supplierModalBackdrop').classList.remove('open');
+      document.getElementById('projectModalBackdrop').classList.remove('open');
+      document.getElementById('notificationModalBackdrop').classList.remove('open');
+      document.getElementById('inventoryModalBackdrop').classList.remove('open');
+      document.getElementById('categoryModalBackdrop').classList.remove('open');
+      document.getElementById('storageModalBackdrop').classList.remove('open');
+    }
+
+    async function saveMaterial(event) {
+      event.preventDefault();
+      const form = event.target;
+      const applicationType = form.elements.applicationType.value;
+      const payload = {
+        id: state.editingMaterialId || Date.now(),
+        name: form.elements.name.value,
+        type: form.elements.type.value,
+        manufacturer: form.elements.manufacturer.value,
+        colour: form.elements.colour.value,
+        diameter: applicationType === 'Laser Cutter Material' ? '' : (form.elements.filamentDiameter?.value || ''),
+        thickness: applicationType === 'Laser Cutter Material' ? (form.elements.thickness?.value || '') : '',
+        sheetSize: applicationType === 'Laser Cutter Material' ? (form.elements.sheetSize?.value || '') : '',
+        length: applicationType === 'Laser Cutter Material' ? (form.elements.length?.value || '') : '',
+        width: applicationType === 'Laser Cutter Material' ? (form.elements.width?.value || '') : '',
+        weight: applicationType === 'Filament' ? (form.elements.filamentWeight?.value || '') : '',
+        quantity: Number(form.elements.quantity.value || 0),
+        unit: form.elements.unit.value,
+        currentStock: Number(form.elements.currentStock.value || 0),
+        minimumStock: Number(form.elements.minimumStock.value || 0),
+        location: form.elements.location.value,
+        assignedMachine: form.elements.assignedMachine.value,
+        supplier: form.elements.supplier.value,
+        cost: Number(form.elements.cost.value || 0),
+        status: form.elements.status.value,
+        applicationType,
+        ownerEmail: state.currentUser ? state.currentUser.email : '',
+        typeGroup: applicationType === 'Laser Cutter Material' ? 'Laser Cutting' : (form.elements.type.value.includes('PLA') || form.elements.type.value.includes('PETG') || form.elements.type.value.includes('ABS') || form.elements.type.value.includes('ASA') || form.elements.type.value.includes('TPU') || form.elements.type.value.includes('Nylon') || form.elements.type.value.includes('Resin') || form.elements.type.value.includes('Carbon') || form.elements.type.value.includes('Wood') || form.elements.type.value.includes('Metal') ? '3D Printing' : (form.elements.type.value.includes('Acrylic') || form.elements.type.value.includes('MDF') || form.elements.type.value.includes('Plywood') || form.elements.type.value.includes('Foam') || form.elements.type.value.includes('Card') || form.elements.type.value.includes('Leather') || form.elements.type.value.includes('Paper') || form.elements.type.value.includes('Fabric') || form.elements.type.value.includes('Polycarbonate') || form.elements.type.value.includes('Delrin') || form.elements.type.value.includes('Rubber') || form.elements.type.value.includes('Cork') ? 'Laser Cutting' : 'Custom'))
+      };
+      try {
+        const response = await fetch('/api/materials', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: payload.name,
+            type: payload.type,
+            manufacturer: payload.manufacturer,
+            colour: payload.colour,
+            diameter: payload.diameter,
+            thickness: payload.thickness,
+            width: payload.width,
+            length: payload.length,
+            weight: payload.weight,
+            quantity: payload.quantity,
+            currentStock: payload.currentStock,
+            minimumStock: payload.minimumStock,
+            unit: payload.unit,
+            status: payload.status,
+            applicationType: payload.applicationType,
+            notes: `${payload.location || ''} | ${payload.assignedMachine || ''}`.trim()
+          })
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.error || 'Unable to save material');
+        const savedMaterial = { ...payload, id: result.materialId || payload.id };
+        if (state.editingMaterialId) {
+          state.materials = state.materials.map(item => item.id === state.editingMaterialId ? savedMaterial : item);
+        } else {
+          state.materials.unshift(savedMaterial);
+        }
+        closeModals();
+        renderMaterials();
+        refreshDashboard();
+        toastMessage('Material saved');
+      } catch (error) {
+        toastMessage(error.message || 'Unable to save material');
+      }
+    }
+
+    function deleteMaterial(id) {
+      state.materials = state.materials.filter(item => item.id !== Number(id));
+      state.assignments = state.assignments.filter(item => item.material !== state.materials.find(m => m.id === Number(id))?.name);
+      renderMaterials();
+      refreshDashboard();
+      toastMessage('Material removed');
+    }
+
+    function duplicateMaterial(id) {
+      const material = state.materials.find(item => item.id === Number(id));
+      if (!material) return;
+      const copy = { ...material, id: Date.now(), name: `${material.name} Copy` };
+      state.materials.unshift(copy);
+      renderMaterials();
+      refreshDashboard();
+      toastMessage('Material duplicated');
+    }
+
+    function openAssignModal(id = null) {
+      const assignBackdrop = document.getElementById('assignModalBackdrop');
+      const machineSelect = document.getElementById('assignMachineSelect');
+      const materialSelect = document.getElementById('assignMaterialSelect');
+      machineSelect.innerHTML = state.machines.map(machine => `<option value="${machine.model}">${machine.manufacturer} ${machine.model}</option>`).join('');
+      materialSelect.innerHTML = state.materials.map(material => `<option value="${material.id}">${material.name}</option>`).join('');
+      if (id) materialSelect.value = String(id);
+      assignBackdrop.classList.add('open');
+    }
+
+    async function assignMaterial(event) {
+      event.preventDefault();
+      const machine = document.getElementById('assignMachineSelect').value;
+      const materialId = Number(document.getElementById('assignMaterialSelect').value);
+      const material = state.materials.find(item => item.id === materialId);
+      if (!material) return;
+      const assignment = {
+        id: Date.now(),
+        machine,
+        material: material.name,
+        assignedBy: document.getElementById('assignBy').value,
+        assignedDate: new Date().toISOString().slice(0, 10),
+        usageRemaining: Number(document.getElementById('assignUsage').value || 100),
+        estimatedTimeRemaining: document.getElementById('assignTime').value
+      };
+      state.assignments = [assignment, ...state.assignments.filter(item => item.material !== material.name)];
+      material.assignedMachine = machine;
+      material.status = material.quantity > 0 ? 'In Stock' : 'Out of Stock';
+      closeModals();
+      renderAssignments();
+      renderMaterials();
+      refreshDashboard();
+      toastMessage(`Assigned ${material.name} to ${machine}`);
+    }
+
+    function generateQR(id) {
+      const material = state.materials.find(item => item.id === Number(id));
+      if (!material) return;
+      const url = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(material.name)}`;
+      const content = `<!DOCTYPE html><html><body style="font-family:Arial;padding:30px;text-align:center"><h2>${material.name}</h2><img src="${url}" /><p>${material.barcode}</p><p>Location: ${material.location}</p><script>window.print()<\/script></body></html>`;
+      const win = window.open('', '_blank');
+      win.document.write(content);
+      win.document.close();
+      toastMessage('QR label prepared');
+    }
+
+    function generateBarcode(id) {
+      const material = state.materials.find(item => item.id === Number(id));
+      if (!material) return;
+      const win = window.open('', '_blank');
+      win.document.write(`<!DOCTYPE html><html><body style="font-family:Arial;padding:40px;text-align:center"><h2>${material.name}</h2><svg id="barcode"></svg><p>${material.barcode}</p><script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/JsBarcode.all.min.js"><\/script><script>JsBarcode('#barcode', '${material.barcode}', {format:'CODE128', width:2, height:60}); setTimeout(()=>window.print(), 300);<\/script></body></html>`);
+      win.document.close();
+      toastMessage('Barcode label prepared');
+    }
+
+    function toggleDarkMode() {
+      state.darkMode = !state.darkMode;
+      document.body.classList.toggle('dark', state.darkMode);
+      document.getElementById('themeToggle').textContent = state.darkMode ? '🌙' : '☀';
+      localStorage.setItem('trackerDarkMode', JSON.stringify(state.darkMode));
+    }
+
+    function applyTheme() {
+      const savedDark = JSON.parse(localStorage.getItem('trackerDarkMode') || 'false');
+      const savedAccent = localStorage.getItem('trackerAccent') || '#2563eb';
+      state.darkMode = savedDark;
+      state.accent = savedAccent;
+      document.body.classList.toggle('dark', state.darkMode);
+      document.documentElement.style.setProperty('--accent', state.accent);
+      document.getElementById('themeToggle').textContent = state.darkMode ? '🌙' : '☀';
+      document.getElementById('accentPicker').value = state.accent;
+      document.getElementById('darkModeToggle').checked = state.darkMode;
+    }
+
+    async function startScanner() {
+      const message = document.getElementById('scannerMessage');
+      const reader = document.getElementById('reader');
+      if (!window.Html5Qrcode) {
+        message.textContent = 'Scanner library is not available.';
+        return;
+      }
+      if (!state.scanner) {
+        state.scanner = new Html5Qrcode('reader');
+      }
+      try {
+        await state.scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: 250 }, async (decodedText) => {
+          await state.scanner.stop();
+          state.scannerActive = false;
+          const found = state.materials.find(item => item.name.toLowerCase().includes(decodedText.toLowerCase()) || item.barcode === decodedText || item.qrCode === decodedText || String(item.id) === decodedText);
+          const resultBox = document.getElementById('scannerResult');
+          if (found) {
+            resultBox.innerHTML = `<div class="panel"><h3>${found.name}</h3><p>Location: ${found.location}</p><p>Quantity: ${found.quantity}</p><p>Status: ${found.status}</p></div>`;
+            toastMessage(`Scanned ${found.name}`);
+          } else {
+            resultBox.innerHTML = `<div class="empty-state">No matching material found for ${decodedText}</div>`;
+          }
+          message.textContent = `Scanned: ${decodedText}`;
+        }, () => {});
+        state.scannerActive = true;
+        message.textContent = 'Camera is active. Point it at a QR code or barcode.';
+      } catch (error) {
+        message.textContent = `Scanner failed: ${error.message}`;
+      }
+    }
+
+    async function stopScanner() {
+      if (state.scanner && state.scannerActive) {
+        await state.scanner.stop();
+      }
+      state.scannerActive = false;
+      document.getElementById('scannerMessage').textContent = 'Scanner stopped.';
+    }
+
+    function renderScanner() {
+      document.getElementById('scannerMessage').textContent = 'Ready to scan.';
+    }
+
+    function exportReport(format) {
+      const rows = state.materials.map(item => `${item.name},${item.quantity},${item.status}`).join('\n');
+      if (format === 'csv') {
+        const blob = new Blob([`Material Name,Quantity,Status\n${rows}`], { type: 'text/csv' });
+        downloadFile(blob, `${state.currentReport.toLowerCase().replace(/\s+/g, '-')}.csv`);
+      } else if (format === 'excel') {
+        const blob = new Blob([`Material Name\tQuantity\tStatus\n${rows.replace(/,/g, '\t')}`], { type: 'application/vnd.ms-excel' });
+        downloadFile(blob, `${state.currentReport.toLowerCase().replace(/\s+/g, '-')}.xls`);
+      } else if (format === 'pdf') {
+        const blob = new Blob([`%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Count 1/Kids[3 0 R]>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 300 144]/Contents 4 0 R>>endobj\n4 0 obj<</Length 44>>stream\nBT /F1 12 Tf 72 72 Td (${state.currentReport}) Tj ET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f \n0000000010 00000 n \n0000000062 00000 n \n0000000119 00000 n \n0000000207 00000 n \ntrailer<</Size 5/Root 1 0 R>>\nstartxref\n0\n%%EOF`], { type: 'application/pdf' });
+        downloadFile(blob, `${state.currentReport.toLowerCase().replace(/\s+/g, '-')}.pdf`);
+      } else if (format === 'print') {
+        window.print();
+      }
+      toastMessage(`${state.currentReport} exported`);
+    }
+
+    function downloadFile(blob, fileName) {
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = fileName;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    function toastMessage(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.style.display = 'block';
+      clearTimeout(toast.timeout);
+      toast.timeout = setTimeout(() => { toast.style.display = 'none'; }, 2200);
+    }
+
+    function printMaterials() {
+      window.print();
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
