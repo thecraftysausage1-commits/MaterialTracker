@@ -2169,9 +2169,11 @@ const sendBtn = document.getElementById("send-chat");
 const input = document.getElementById("chat-input");
 const messages = document.getElementById("chatbot-messages");
 
-button.onclick = () => {
+if (button) {
+    button.onclick = () => {
     windowBox.style.display = "flex";
-};
+    };
+}
 
 closeBtn.onclick = () => {
     windowBox.style.display = "none";
