@@ -2175,7 +2175,8 @@ if (button) {
     };
 }
 
-closeBtn.onclick = () => {
+if (button) {
+    closeBtn.onclick = () => {
     windowBox.style.display = "none";
 };
 
