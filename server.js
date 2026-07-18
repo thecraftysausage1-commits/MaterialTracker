@@ -94,7 +94,6 @@ app.get("/api/loyverse/items", async (req, res) => {
 // MATERIALS API
 // =========================
 app.get("/api/materials", (req, res) => {
-    ...
 });
 
 app.post("/api/materials", (req, res) => {
