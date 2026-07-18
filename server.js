@@ -1,7 +1,11 @@
+require("dotenv").config();
+
 const express = require("express");
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
 const cors = require("cors");
+
+const loyverse = require("./services/loyverse");
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -70,13 +74,27 @@ app.get("/api/test", (req, res) => {
     });
 });
 
+// =========================
+// LOYVERSE API
+// =========================
+app.get("/api/loyverse/items", async (req, res) => {
+    try {
+        const response = await loyverse.get("/items");
+        res.json(response.data);
+    } catch (err) {
+        console.error(err.response?.data || err.message);
+        res.status(500).json({
+            success: false,
+            error: err.response?.data || err.message
+        });
+    }
+});
+
+// =========================
+// MATERIALS API
+// =========================
 app.get("/api/materials", (req, res) => {
-    allWithRetry("SELECT * FROM Materials ORDER BY MaterialID DESC", [], (err, rows) => {
-        if (err) {
-            return res.status(500).json(err);
-        }
-        res.json(rows);
-    });
+    ...
 });
 
 app.post("/api/materials", (req, res) => {
@@ -350,9 +368,9 @@ app.post("/api/login", (req, res) => {
 });
 
 if (require.main === module) {
-   app.listen(3000, "0.0.0.0", () => {
-    console.log("Server running on port 3000");
-});
+    app.listen(PORT, "0.0.0.0", () => {
+        console.log(`Server running on port ${PORT}`);
+    });
 }
 
 module.exports = { app, db };
