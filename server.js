@@ -7,6 +7,8 @@ const cors = require("cors");
 
 const loyverse = require("./services/loyverse");
 
+const { askAI } = require("./services/ai");
+
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, "Database", "Materialtracker_working.db");
@@ -364,6 +366,37 @@ app.post("/api/login", (req, res) => {
             });
         }
     );
+});
+
+// =========================
+// AI CHAT API
+// =========================
+app.post("/api/ai/chat", async (req, res) => {
+    try {
+        const { question } = req.body;
+
+        if (!question) {
+            return res.status(400).json({
+                success: false,
+                error: "Question is required."
+            });
+        }
+
+        const answer = await askAI(question);
+
+        res.json({
+            success: true,
+            answer
+        });
+
+    } catch (err) {
+        console.error("AI Error:", err);
+
+        res.status(500).json({
+            success: false,
+            error: err.message
+        });
+    }
 });
 
 if (require.main === module) {

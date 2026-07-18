@@ -12,10 +12,12 @@
   },
   "license": "ISC",
   "dependencies": {
+    "@google/genai": "^2.12.0",
     "axios": "^1.8.1",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
-    "express": "^4.21.2",
-    "sqlite3": "^5.1.7"
+    "dotenv": "^16.6.1",
+    "express": "^4.22.2",
+    "sqlite3": "^5.1.7",
+    "tp-link-tapo-connect": "^2.0.15"
   }
 }
