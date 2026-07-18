@@ -2157,6 +2157,63 @@
     }
 
     document.addEventListener('DOMContentLoaded', init);
+    
   </script>
+
+<script>
+
+const button = document.getElementById("chatbot-button");
+const windowBox = document.getElementById("chatbot-window");
+const closeBtn = document.getElementById("close-chat");
+const sendBtn = document.getElementById("send-chat");
+const input = document.getElementById("chat-input");
+const messages = document.getElementById("chatbot-messages");
+
+button.onclick = () => {
+    windowBox.style.display = "flex";
+};
+
+closeBtn.onclick = () => {
+    windowBox.style.display = "none";
+};
+
+async function sendMessage(){
+
+    const question = input.value.trim();
+
+    if(question==="") return;
+
+    messages.innerHTML += `<p><b>You:</b> ${question}</p>`;
+
+    input.value="";
+
+    const response = await fetch("/api/ai/chat",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+            question
+        })
+    });
+
+    const data = await response.json();
+
+    messages.innerHTML += `<p><b>AI:</b> ${data.answer}</p>`;
+
+    messages.scrollTop = messages.scrollHeight;
+
+}
+
+sendBtn.onclick = sendMessage;
+
+input.addEventListener("keypress",e=>{
+    if(e.key==="Enter"){
+        sendMessage();
+    }
+});
+
+</script>
+
 </body>
 </html>
